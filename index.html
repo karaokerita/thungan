@@ -215,7 +215,16 @@ const REMEMBER_KEY = "karaoke_staff_remember";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Biến lưu thông tin tài khoản ngân hàng
+// ÁNH XẠ TÊN PHÒNG: DB (không dấu) -> Giao diện (có dấu)
+const ROOM_NAME_MAP = {
+  'Phong 3': 'Phòng 3', 'Phong 4': 'Phòng 4', 'Phong 5': 'Phòng 5',
+  'Phong 6': 'Phòng 6', 'Phong 7': 'Phòng 7', 'Phong 8': 'Phòng 8', 'Phong 9': 'Phòng 9'
+};
+
+function getDisplayName(dbName) {
+  return ROOM_NAME_MAP[dbName] || dbName;
+}
+
 let bankAccounts = {
     thanh_toan: { ten_ngan_hang: 'VCB', so_tai_khoan: '9917523946', chu_tai_khoan: 'HUYNH PHUONG TRANG' },
     tam_ung: { ten_ngan_hang: 'VCB', so_tai_khoan: '9917523946', chu_tai_khoan: 'HUYNH PHUONG TRANG' }
@@ -233,7 +242,7 @@ function showMainApp() {
   loginScreen.style.display = "none";
   mainContainer.style.display = "block";
   loginError.style.display = "none";
-  initData(); // Load data ngay khi vào
+  initData();
 }
 
 function handleLogin() {
@@ -295,11 +304,34 @@ function numberToWords(n) {
   return parts.join(", ").replace(/ ,/g, ",").replace(/\s+/g, " ").trim() + " đồng";
 }
 
-// ================= LOGIC DỮ LIỆU (SUPABASE) =================
+// ================= LOGIC DỮ LIỆU & REALTIME =================
+let isInitialLoad = true;
+
 async function initData() {
     await loadBankAccounts();
     await loadRooms();
-    setInterval(loadRooms, 30000); // Tự động cập nhật mỗi 30s
+    
+    // LẮNG NGHE THAY ĐỔI REALTIME TỪ SUPABASE
+    supabaseClient
+      .channel('thungan-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'thungan' }, async (payload) => {
+        console.log("Có thay đổi dữ liệu từ thu ngân:", payload);
+        
+        // Bảo vệ: Nếu người dùng đang gõ số tiền thủ công, giữ lại giá trị họ đang gõ
+        const activeEl = document.activeElement;
+        const isTypingManual = activeEl && activeEl.id === 'manualAmount';
+        const savedManualVal = isTypingManual ? activeEl.value : null;
+
+        await loadRooms(false); // Load lại dữ liệu, false = không hiện loading spinner gây nhấp nháy
+
+        // Khôi phục giá trị đang gõ nếu có
+        if (isTypingManual && savedManualVal !== null) {
+          activeEl.value = savedManualVal;
+          // Kích hoạt lại sự kiện input để cập nhật QR nếu cần
+          activeEl.dispatchEvent(new Event('input'));
+        }
+      })
+      .subscribe();
 }
 
 async function loadBankAccounts() {
@@ -314,7 +346,8 @@ async function loadBankAccounts() {
     } catch (e) { console.error("Lỗi tải tài khoản bank:", e); }
 }
 
-async function loadRooms() {
+async function loadRooms(showLoading = true) {
+  if (showLoading) document.getElementById("loadingOverlay")?.classList.add("active");
   try {
     const { data, error } = await supabaseClient.from('thungan').select('*');
     if (error) throw error;
@@ -330,6 +363,8 @@ async function loadRooms() {
     populateAdvanceRoomSelect(data);
   } catch (e) {
     console.error("Lỗi tải phòng:", e);
+  } finally {
+    if (showLoading) document.getElementById("loadingOverlay")?.classList.remove("active");
   }
 }
 
@@ -338,6 +373,7 @@ function renderTable(data) {
   table.innerHTML = "";
 
   data.forEach(room => {
+    const displayName = getDisplayName(room.ten_phong); // Lấy tên có dấu
     const isActive = room.trang_thai === 'dang mo';
     const statusClass = room.trang_thai === 'dang mo' ? 'status-dang-mo' : 
                         room.trang_thai === 'da thanh toan' ? 'status-da-thanh-toan' : 'status-chua-mo';
@@ -351,7 +387,7 @@ function renderTable(data) {
     if (isActive) tr.classList.add("bg-active");
     
     tr.innerHTML = `
-      <td style="font-weight:700;">${room.ten_phong.replace('Phong', 'P.')}</td>
+      <td style="font-weight:700;">${displayName}</td>
       <td style="font-weight:600;">${displayAmount}</td>
       <td class="${statusClass}">${statusText}</td>
       <td>${displayTime}</td>
@@ -365,15 +401,16 @@ function renderTable(data) {
 }
 
 async function markPaid(roomName) {
-  if(!confirm(`Xác nhận phòng ${roomName.replace('Phong', 'Phòng')} đã thanh toán?`)) return;
+  const displayName = getDisplayName(roomName);
+  if(!confirm(`Xác nhận ${displayName} đã thanh toán?`)) return;
   try {
     const { error } = await supabaseClient.from('thungan').update({
       trang_thai: 'da thanh toan'
     }).eq('ten_phong', roomName);
     
     if (!error) {
-      alert("Đã cập nhật trạng thái thành công!");
-      loadRooms();
+      alert(`Đã cập nhật trạng thái cho ${displayName}!`);
+      // Không cần loadRooms() ở đây vì Realtime sẽ tự bắt sự thay đổi
     } else {
       alert("Lỗi khi cập nhật: " + error.message);
     }
@@ -397,7 +434,6 @@ const qrImage = document.getElementById("qrImage");
 const amountText = document.getElementById("amountText");
 const roomNameQR = document.getElementById("roomNameQR");
 
-// Hàm tạo QR động dựa trên dữ liệu từ bảng tai_khoan_bank
 function generateQR(amount, addInfo, type = 'thanh_toan') {
     const acc = bankAccounts[type] || bankAccounts.thanh_toan;
     const bank = acc.ten_ngan_hang || 'VCB';
@@ -407,10 +443,13 @@ function generateQR(amount, addInfo, type = 'thanh_toan') {
     return `https://img.vietqr.io/image/${bank}-${accNum}-qr_only.png?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accName)}`;
 }
 
-function updateQR(val, roomName = "") {
-  if (roomName) roomNameQR.textContent = roomName;
-  const displayRoom = roomNameQR.textContent || "";
-  const addInfo = displayRoom ? `Thank+You+${encodeURIComponent(displayRoom)}` : `Thank+You`;
+function updateQR(val, dbRoomName = "") {
+  const displayName = dbRoomName ? getDisplayName(dbRoomName) : "";
+  if (displayName) roomNameQR.textContent = displayName;
+  
+  const currentDisplayRoom = roomNameQR.textContent || "";
+  // YÊU CẦU: "Thank you" + tên phòng (ví dụ: Thank you Phòng 4)
+  const addInfo = currentDisplayRoom ? `Thank you ${currentDisplayRoom}` : `Thank you`;
   
   qrImage.src = generateQR(val, addInfo, 'thanh_toan');
   amountText.textContent = val > 0 ? numberToWords(Number(val)) : "";
@@ -420,18 +459,19 @@ manualAmount.addEventListener("input", function() {
   let val = this.value.replace(/\D/g, "");
   if (val) {
     this.value = formatNumber(val);
-    updateQR(val);
+    // Giữ nguyên phòng đang hiển thị nếu có, nếu không thì chỉ cập nhật số tiền
+    updateQR(val, roomNameQR.textContent ? Object.keys(ROOM_NAME_MAP).find(key => ROOM_NAME_MAP[key] === roomNameQR.textContent) : "");
   } else {
     this.value = "";
     amountText.textContent = "";
     qrImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-    roomNameQR.textContent = "";
+    // Không xóa roomNameQR để giữ ngữ cảnh nếu người dùng xóa số tiền
   }
 });
 
-function fillQR(amount, roomName) {
+function fillQR(amount, dbRoomName) {
   manualAmount.value = formatNumber(amount);
-  updateQR(amount, roomName);
+  updateQR(amount, dbRoomName);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -444,7 +484,6 @@ const openCameraAdvance = document.getElementById("openCameraAdvance");
 const noRoomHint = document.getElementById("noRoomHint");
 
 function populateAdvanceRoomSelect(data) {
-  // CHỈ lấy các phòng đang mở
   const openRooms = data.filter(r => r.trang_thai === 'dang mo');
   const prevValue = advanceRoom.value;
   advanceRoom.innerHTML = "";
@@ -465,7 +504,7 @@ function populateAdvanceRoomSelect(data) {
   openRooms.forEach(room => {
     const opt = document.createElement("option");
     opt.value = room.ten_phong;
-    opt.textContent = room.ten_phong.replace('Phong', 'Phòng ');
+    opt.textContent = getDisplayName(room.ten_phong); // Hiển thị có dấu
     advanceRoom.appendChild(opt);
   });
 
@@ -495,12 +534,12 @@ function updateAdvanceState() {
 advanceRoom.addEventListener("change", updateAdvanceState);
 
 function refreshAdvanceQR() {
-  const roomName = advanceRoom.value.trim().replace('Phong', 'Phòng');
+  const dbRoomName = advanceRoom.value.trim();
+  const displayName = getDisplayName(dbRoomName);
   const amountRaw = advanceAmount.value.replace(/\D/g, "");
   
-  if (amountRaw && roomName) {
-    const addInfo = `tam ung ${roomName}`;
-    // Sử dụng tài khoản 'tam_ung' từ database
+  if (amountRaw && dbRoomName) {
+    const addInfo = `tam ung ${displayName}`;
     advanceQrImage.src = generateQR(amountRaw, addInfo, 'tam_ung');
     advanceAmountText.textContent = numberToWords(Number(amountRaw));
   } else {
@@ -571,7 +610,8 @@ captureBtn.addEventListener("click", () => {
     ctx.font = "18px Inter, Arial";
     ctx.fillText(`Thời gian: ${timeStr}`, padding, padding + 70);
   } else {
-    const roomName = advanceRoom.value.trim().replace('Phong', 'Phòng');
+    const dbRoomName = advanceRoom.value.trim();
+    const roomName = getDisplayName(dbRoomName);
     const amountNumber = advanceAmount.value;
     currentShareText = `Tạm ứng ${roomName}\nSố tiền: ${amountNumber}\nThời gian: ${timeStr}`;
 
