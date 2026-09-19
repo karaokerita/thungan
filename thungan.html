@@ -14,6 +14,7 @@
       --primary: #6366f1; --primary-dark: #4f46e5;
       --success: #10b981; --success-dark: #059669;
       --danger: #ef4444; --danger-dark: #dc2626;
+      --warning: #f59e0b;
       --bg: #f1f5f9; --card: #ffffff; --text: #1e293b;
       --text-secondary: #64748b; --border: #e2e8f0;
       --shadow: 0 4px 24px rgba(0,0,0,0.08); --radius: 14px;
@@ -122,6 +123,34 @@
     .toast.show { transform: translateY(0); opacity: 1; }
     .toast.error { background: var(--danger); }
     .toast.success { background: var(--success); }
+
+    /* Kiểm Kho Button */
+    .check-inventory-btn {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      margin: 28px auto 32px;
+      padding: 16px 32px;
+      background: linear-gradient(135deg, #f59e0b, #fbbf24);
+      color: #78350f;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 800;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 16px rgba(245,158,11,0.35);
+      transition: all 0.3s ease;
+    }
+    .check-inventory-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(245,158,11,0.45);
+    }
+    .check-inventory-btn:active { transform: translateY(0); }
+    .check-inventory-btn .icon { margin-right: 8px; }
   </style>
 </head>
 <body>
@@ -159,6 +188,11 @@
         </table>
       </div>
     </div>
+
+    <!-- Nút Kiểm Kho -->
+    <a href="https://karaokerita.github.io/qr/kho.html" class="check-inventory-btn" target="_blank">
+      <span class="icon">📦</span> KIỂM KHO
+    </a>
   </div>
 
   <script>
@@ -167,6 +201,16 @@
     const ROOMS = ['Phong 3', 'Phong 4', 'Phong 5', 'Phong 6', 'Phong 7', 'Phong 8', 'Phong 9'];
     
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ÁNH XẠ TÊN PHÒNG: DB (không dấu) -> Giao diện (có dấu)
+    const ROOM_NAME_MAP = {
+      'Phong 3': 'Phòng 3', 'Phong 4': 'Phòng 4', 'Phong 5': 'Phòng 5',
+      'Phong 6': 'Phòng 6', 'Phong 7': 'Phòng 7', 'Phong 8': 'Phòng 8', 'Phong 9': 'Phòng 9'
+    };
+
+    function getDisplayName(dbName) {
+      return ROOM_NAME_MAP[dbName] || dbName;
+    }
 
     const formatNumber = n => n ? Number(n).toLocaleString("vi-VN") : "";
     const parseNumber = str => Number(str.replace(/\./g, "").replace(/,/g, "")) || 0;
@@ -185,21 +229,51 @@
       'da thanh toan': { text: 'Đã thanh toán', class: 'status-da-thanh-toan' }
     };
 
-    async function loadRooms() {
-      showLoading(true);
+    // ================= LOGIC DỮ LIỆU & REALTIME =================
+    async function initData() {
+      await loadRooms();
+      
+      // LẮNG NGHE THAY ĐỔI REALTIME TỪ SUPABASE (Đồng bộ giữa các tab thu ngân)
+      supabaseClient
+        .channel('thungan-realtime-cashier')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'thungan' }, async (payload) => {
+          // Bảo vệ: Nếu đang gõ tiền, giữ lại giá trị để không bị mất
+          const activeEl = document.activeElement;
+          const isTyping = activeEl && activeEl.classList.contains('amount-input');
+          const savedVal = isTyping ? activeEl.value : null;
+          const savedId = isTyping ? activeEl.id : null;
+
+          await loadRooms(false); // Load lại không hiện loading spinner
+
+          if (isTyping && savedId) {
+            const el = document.getElementById(savedId);
+            if (el) {
+              el.value = savedVal;
+              // Kích hoạt lại sự kiện để nút cập nhật vẫn sáng nếu cần
+              el.dispatchEvent(new Event('input'));
+            }
+          }
+        })
+        .subscribe();
+    }
+
+    async function loadRooms(showLoading = true) {
+      if (showLoading) showLoading(true);
       try {
         const { data, error } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
         if (error) throw error;
 
         await checkAndResetDaily(data);
-        await check30MinAfterPaid(data); // Logic mới: Reset sau 30 phút thanh toán
+        await check30MinAfterPaid(data);
 
         const { data: finalData } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
         renderTable(finalData);
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
         showToast("Lỗi kết nối CSDL!", "error");
-      } finally { showLoading(false); }
+      } finally {
+        if (showLoading) showLoading(false);
+      }
     }
 
     async function checkAndResetDaily(currentData) {
@@ -218,7 +292,6 @@
       }
     }
 
-    // LOGIC MỚI: Tự động reset nếu trạng thái "Đã thanh toán" quá 30 phút
     async function check30MinAfterPaid(data) {
       const now = new Date();
       let needsUpdate = false;
@@ -230,10 +303,9 @@
           paidTime.setHours(h, m, 0, 0);
           
           let diffMs = now - paidTime;
-          if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000; // Xử lý qua đêm
+          if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000; 
           
           if ((diffMs / 1000 / 60) >= 30) {
-            console.log(`Tự động reset phòng ${room.ten_phong} sau 30 phút thanh toán`);
             await supabaseClient.from('thungan').update({
               trang_thai: 'chua mo', so_tien: 0, thoi_gian: '', thoi_gian_thanh_toan: ''
             }).eq('ten_phong', room.ten_phong);
@@ -249,16 +321,16 @@
       let html = "";
       
       data.forEach(room => {
+        const displayName = getDisplayName(room.ten_phong); // Lấy tên có dấu
         const statusInfo = statusMap[room.trang_thai] || statusMap['chua mo'];
         const isDangMo = room.trang_thai === 'dang mo';
         
-        // MẶC ĐỊNH RNG: Chỉ hiện khi có giá trị thực
         const displayAmount = (room.so_tien && room.so_tien > 0) ? formatNumber(room.so_tien) : "";
         const displayTime = (room.thoi_gian && room.thoi_gian !== '00:00') ? room.thoi_gian : "";
 
         html += `
           <tr>
-            <td><span class="room-name">${room.ten_phong.replace('Phong', 'Phòng')}</span></td>
+            <td><span class="room-name">${displayName}</span></td>
             <td>
               <input type="text" class="amount-input" id="amount-${room.ten_phong}" 
                 value="${displayAmount}" placeholder="0" autocomplete="off"
@@ -286,7 +358,7 @@
         trang_thai: 'dang mo', so_tien: 0, thoi_gian: getCurrentTime(), thoi_gian_thanh_toan: ''
       }).eq('ten_phong', roomName);
       
-      if (!error) { showToast(`Đã mở ${roomName.replace('Phong', 'Phòng')}`); await loadRooms(); } 
+      if (!error) { showToast(`Đã mở ${getDisplayName(roomName)}`); await loadRooms(false); } 
       else showToast("Lỗi khi mở phòng!", "error");
       showLoading(false);
     }
@@ -303,19 +375,18 @@
       const amount = parseNumber(document.getElementById(`amount-${roomName}`).value);
       showLoading(true);
       const { error } = await supabaseClient.from('thungan').update({ so_tien: amount }).eq('ten_phong', roomName);
-      if (!error) { showToast("Đã cập nhật số tiền"); await loadRooms(); } 
+      if (!error) { showToast(`Đã cập nhật số tiền ${getDisplayName(roomName)}`); await loadRooms(false); } 
       else showToast("Lỗi khi cập nhật!", "error");
       showLoading(false);
     }
 
     async function markPaid(roomName) {
       showLoading(true);
-      // Lưu lại giờ thanh toán để tính toán 30 phút
       const { error } = await supabaseClient.from('thungan').update({
         trang_thai: 'da thanh toan', thoi_gian_thanh_toan: getCurrentTime()
       }).eq('ten_phong', roomName);
 
-      if (!error) { showToast(`Đã thanh toán ${roomName.replace('Phong', 'Phòng')}`); await loadRooms(); } 
+      if (!error) { showToast(`Đã thanh toán ${getDisplayName(roomName)}`); await loadRooms(false); } 
       else showToast("Lỗi khi thanh toán!", "error");
       showLoading(false);
     }
@@ -327,8 +398,9 @@
     }
     setInterval(updateClock, 1000); updateClock();
 
-    loadRooms();
-    setInterval(loadRooms, 30000);
+    // Khởi chạy
+    initData();
+    setInterval(() => loadRooms(false), 30000); // Load nền mỗi 30s để đề phòng mất kết nối realtime
 
     // ================= NETWORK SPEED MONITOR =================
     const swDot = document.getElementById('swDot'), swDl = document.getElementById('swDl');
