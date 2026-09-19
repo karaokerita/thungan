@@ -156,13 +156,16 @@
     const parseNumber = str => Number(str.replace(/\./g, "").replace(/,/g, "")) || 0;
     const getCurrentTime = () => new Date().toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit', hour12: false });
     
-    function showLoading(show) { document.getElementById('loadingOverlay').classList.toggle('active', show); }
+    // Hàm hiển thị loading
+    function showLoading(show) { 
+      document.getElementById('loadingOverlay').classList.toggle('active', show); 
+    }
     
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
       toast.textContent = message; 
       toast.className = `toast show ${type}`;
-      setTimeout(() => { toast.className = 'toast'; }, 5000); // Hiển thị lâu hơn 5s để đọc lỗi
+      setTimeout(() => { toast.className = 'toast'; }, 5000);
     }
 
     const statusMap = {
@@ -173,7 +176,7 @@
 
     async function initData() {
       console.log("Bắt đầu khởi tạo dữ liệu...");
-      await loadRooms();
+      await loadRooms(); // Mặc định displayLoading = true
       
       // Realtime
       supabaseClient
@@ -184,7 +187,7 @@
           const savedVal = isTyping ? activeEl.value : null;
           const savedId = isTyping ? activeEl.id : null;
 
-          await loadRooms(false);
+          await loadRooms(false); // displayLoading = false để không nhấp nháy
 
           if (isTyping && savedId) {
             const el = document.getElementById(savedId);
@@ -197,8 +200,9 @@
         .subscribe();
     }
 
-    async function loadRooms(showLoading = true) {
-      if (showLoading) showLoading(true);
+    // ĐÃ SỬA: Đổi tên tham số thành displayLoading để không trùng với tên hàm showLoading
+    async function loadRooms(displayLoading = true) {
+      if (displayLoading) showLoading(true);
       try {
         console.log("Đang gọi API Supabase...");
         const { data, error } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
@@ -222,11 +226,10 @@
         renderTable(finalData);
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
-        // Hiển thị chi tiết lỗi lên màn hình để bạn dễ sửa
         showToast("Lỗi CSDL: " + err.message, "error");
         document.getElementById("roomTable").innerHTML = `<tr><td colspan="5" style="padding:30px; text-align:center; color:red;">Kết nối thất bại. Kiểm tra Console (F12) để biết chi tiết.</td></tr>`;
       } finally {
-        if (showLoading) showLoading(false);
+        if (displayLoading) showLoading(false);
       }
     }
 
@@ -345,10 +348,11 @@
     }
     setInterval(updateClock, 1000); updateClock();
 
+    // Khởi chạy
     initData();
     setInterval(() => loadRooms(false), 30000);
 
-    // Speed Test (Giữ nguyên logic cũ)
+    // Speed Test
     const swDot = document.getElementById('swDot'), swDl = document.getElementById('swDl');
     const swUl = document.getElementById('swUl'), swPg = document.getElementById('swPg');
     const swStatus = document.getElementById('swStatus'), speedWidget = document.getElementById('speedWidget');
