@@ -31,7 +31,6 @@
     .app-header h1 span { display: block; font-size: 15px; font-weight: 600; opacity: 0.9; margin-top: 4px; letter-spacing: 2px; text-transform: uppercase; }
     #currentTime { font-weight: 600; font-size: 14px; margin-top: 12px; background: rgba(255,255,255,0.15); display: inline-block; padding: 6px 18px; border-radius: 20px; }
 
-    /* Speed Monitor Widget */
     .speed-widget {
       position: absolute; top: 16px; right: 16px; z-index: 10;
       background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
@@ -40,14 +39,8 @@
       transition: background 0.2s;
     }
     .speed-widget:hover { background: rgba(255,255,255,0.25); }
-    .speed-widget .sw-title {
-      font-weight: 700; font-size: 10px; text-transform: uppercase;
-      letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px;
-      display: flex; align-items: center; gap: 5px;
-    }
-    .speed-widget .sw-title .dot {
-      width: 6px; height: 6px; border-radius: 50%; background: #4ade80; display: inline-block;
-    }
+    .speed-widget .sw-title { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+    .speed-widget .sw-title .dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; display: inline-block; }
     .speed-widget .sw-title .dot.testing { background: #fbbf24; animation: blink 0.8s infinite; }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     .speed-widget .sw-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
@@ -55,48 +48,31 @@
     .speed-widget .sw-value { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
     .sw-val-dl { color: #93c5fd; } .sw-val-ul { color: #c4b5fd; } .sw-val-pg { color: #fda4af; }
     .speed-widget .sw-status { font-size: 9px; opacity: 0.7; margin-top: 6px; text-align: center; }
-    @media (max-width: 600px) {
-      .speed-widget { position: relative; top: auto; right: auto; margin: 10px auto 0; max-width: 220px; }
-    }
+    @media (max-width: 600px) { .speed-widget { position: relative; top: auto; right: auto; margin: 10px auto 0; max-width: 220px; } }
 
     .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
     .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--border); }
     .table-wrapper { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
-    thead th {
-      background: linear-gradient(135deg, #f8fafc, #f1f5f9); color: var(--text-secondary);
-      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
-      padding: 16px 14px; border-bottom: 2px solid var(--border); text-align: center;
-    }
+    thead th { background: linear-gradient(135deg, #f8fafc, #f1f5f9); color: var(--text-secondary); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 16px 14px; border-bottom: 2px solid var(--border); text-align: center; }
     tbody tr { transition: all 0.3s ease; border-bottom: 1px solid var(--border); }
     tbody tr:hover { background: #f8fafc; }
     tbody td { padding: 14px; text-align: center; vertical-align: middle; font-size: 14px; }
     
     .room-name { font-weight: 700; font-size: 16px; color: var(--text); }
-    .amount-input {
-      width: 140px; padding: 10px 12px; border: 2px solid var(--border);
-      border-radius: 10px; font-size: 15px; font-weight: 600; text-align: right;
-      background: #f8fafc; transition: all 0.2s ease;
-    }
+    .amount-input { width: 140px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 15px; font-weight: 600; text-align: right; background: #f8fafc; transition: all 0.2s ease; }
     .amount-input:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(99,102,241,0.1); }
     .amount-input::placeholder { color: #cbd5e1; font-weight: 400; }
 
-    .btn {
-      padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer;
-      font-size: 13px; font-weight: 600; transition: all 0.2s ease;
-      display: inline-flex; align-items: center; gap: 6px;
-    }
+    .btn { padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; }
     .btn:active { transform: scale(0.96); }
     .btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none !important; }
-    
     .btn-open { background: linear-gradient(135deg, #0ea5e9, #38bdf8); color: white; box-shadow: 0 2px 8px rgba(14,165,233,0.3); }
     .btn-open:hover:not(:disabled) { background: linear-gradient(135deg, #0284c7, #0ea5e9); }
-    
     .btn-update { background: linear-gradient(135deg, var(--success), #34d399); color: white; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
     .btn-update:hover:not(:disabled) { background: linear-gradient(135deg, var(--success-dark), var(--success)); }
     .btn-update.enabled { animation: pulse-green 1.5s ease-in-out infinite; }
     @keyframes pulse-green { 0%, 100% { box-shadow: 0 2px 8px rgba(16,185,129,0.3); } 50% { box-shadow: 0 2px 16px rgba(16,185,129,0.5); } }
-    
     .btn-paid { background: linear-gradient(135deg, var(--danger), #f87171); color: white; box-shadow: 0 2px 8px rgba(239,68,68,0.3); }
     .btn-paid:hover:not(:disabled) { background: linear-gradient(135deg, var(--danger-dark), var(--danger)); }
 
@@ -105,50 +81,18 @@
     .status-dang-mo { background: #dbeafe; color: #1e40af; }
     .status-da-thanh-toan { background: #d1fae5; color: #065f46; }
 
-    .loading-overlay {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 1000;
-      justify-content: center; align-items: center;
-    }
+    .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 1000; justify-content: center; align-items: center; }
     .loading-overlay.active { display: flex; }
     .spinner { width: 44px; height: 44px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .toast {
-      position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white;
-      padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(100px); opacity: 0;
-      transition: all 0.3s ease; z-index: 2000;
-    }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(100px); opacity: 0; transition: all 0.3s ease; z-index: 2000; max-width: 90vw; word-wrap: break-word; }
     .toast.show { transform: translateY(0); opacity: 1; }
     .toast.error { background: var(--danger); }
     .toast.success { background: var(--success); }
 
-    /* Kiểm Kho Button */
-    .check-inventory-btn {
-      display: block;
-      width: 100%;
-      max-width: 400px;
-      margin: 28px auto 32px;
-      padding: 16px 32px;
-      background: linear-gradient(135deg, #f59e0b, #fbbf24);
-      color: #78350f;
-      border: none;
-      border-radius: 14px;
-      font-size: 18px;
-      font-weight: 800;
-      font-family: 'Inter', sans-serif;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-      letter-spacing: 1px;
-      box-shadow: 0 4px 16px rgba(245,158,11,0.35);
-      transition: all 0.3s ease;
-    }
-    .check-inventory-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(245,158,11,0.45);
-    }
+    .check-inventory-btn { display: block; width: 100%; max-width: 400px; margin: 28px auto 32px; padding: 16px 32px; background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #78350f; border: none; border-radius: 14px; font-size: 18px; font-weight: 800; font-family: 'Inter', sans-serif; cursor: pointer; text-align: center; text-decoration: none; letter-spacing: 1px; box-shadow: 0 4px 16px rgba(245,158,11,0.35); transition: all 0.3s ease; }
+    .check-inventory-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(245,158,11,0.45); }
     .check-inventory-btn:active { transform: translateY(0); }
     .check-inventory-btn .icon { margin-right: 8px; }
   </style>
@@ -166,7 +110,6 @@
       <div class="sw-row"><span class="sw-label">◎ Độ trễ</span><span class="sw-value sw-val-pg" id="swPg">— ms</span></div>
       <div class="sw-status" id="swStatus">Nhấn để kiểm tra</div>
     </div>
-
     <h1>THU NGÂN <span>Karaoke Rita</span></h1>
     <div id="currentTime"></div>
   </header>
@@ -184,12 +127,13 @@
               <th>Thời gian</th>
             </tr>
           </thead>
-          <tbody id="roomTable"></tbody>
+          <tbody id="roomTable">
+            <tr><td colspan="5" style="padding: 30px; color: #64748b;">Đang kết nối dữ liệu...</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Nút Kiểm Kho -->
     <a href="https://karaokerita.github.io/qr/kho.html" class="check-inventory-btn" target="_blank">
       <span class="icon">📦</span> KIỂM KHO
     </a>
@@ -202,25 +146,23 @@
     
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ÁNH XẠ TÊN PHÒNG: DB (không dấu) -> Giao diện (có dấu)
     const ROOM_NAME_MAP = {
       'Phong 3': 'Phòng 3', 'Phong 4': 'Phòng 4', 'Phong 5': 'Phòng 5',
       'Phong 6': 'Phòng 6', 'Phong 7': 'Phòng 7', 'Phong 8': 'Phòng 8', 'Phong 9': 'Phòng 9'
     };
-
-    function getDisplayName(dbName) {
-      return ROOM_NAME_MAP[dbName] || dbName;
-    }
+    function getDisplayName(dbName) { return ROOM_NAME_MAP[dbName] || dbName; }
 
     const formatNumber = n => n ? Number(n).toLocaleString("vi-VN") : "";
     const parseNumber = str => Number(str.replace(/\./g, "").replace(/,/g, "")) || 0;
     const getCurrentTime = () => new Date().toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit', hour12: false });
     
     function showLoading(show) { document.getElementById('loadingOverlay').classList.toggle('active', show); }
+    
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
-      toast.textContent = message; toast.className = `toast show ${type}`;
-      setTimeout(() => { toast.className = 'toast'; }, 3000);
+      toast.textContent = message; 
+      toast.className = `toast show ${type}`;
+      setTimeout(() => { toast.className = 'toast'; }, 5000); // Hiển thị lâu hơn 5s để đọc lỗi
     }
 
     const statusMap = {
@@ -229,27 +171,25 @@
       'da thanh toan': { text: 'Đã thanh toán', class: 'status-da-thanh-toan' }
     };
 
-    // ================= LOGIC DỮ LIỆU & REALTIME =================
     async function initData() {
+      console.log("Bắt đầu khởi tạo dữ liệu...");
       await loadRooms();
       
-      // LẮNG NGHE THAY ĐỔI REALTIME TỪ SUPABASE (Đồng bộ giữa các tab thu ngân)
+      // Realtime
       supabaseClient
         .channel('thungan-realtime-cashier')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'thungan' }, async (payload) => {
-          // Bảo vệ: Nếu đang gõ tiền, giữ lại giá trị để không bị mất
           const activeEl = document.activeElement;
           const isTyping = activeEl && activeEl.classList.contains('amount-input');
           const savedVal = isTyping ? activeEl.value : null;
           const savedId = isTyping ? activeEl.id : null;
 
-          await loadRooms(false); // Load lại không hiện loading spinner
+          await loadRooms(false);
 
           if (isTyping && savedId) {
             const el = document.getElementById(savedId);
             if (el) {
               el.value = savedVal;
-              // Kích hoạt lại sự kiện để nút cập nhật vẫn sáng nếu cần
               el.dispatchEvent(new Event('input'));
             }
           }
@@ -260,8 +200,20 @@
     async function loadRooms(showLoading = true) {
       if (showLoading) showLoading(true);
       try {
+        console.log("Đang gọi API Supabase...");
         const { data, error } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
-        if (error) throw error;
+        
+        if (error) {
+          console.error("Lỗi Supabase chi tiết:", error);
+          throw new Error(error.message);
+        }
+
+        console.log("Dữ liệu nhận được:", data);
+
+        if (!data || data.length === 0) {
+           document.getElementById("roomTable").innerHTML = `<tr><td colspan="5" style="padding:30px; text-align:center;">Chưa có dữ liệu phòng. Vui lòng kiểm tra lại Database.</td></tr>`;
+           return;
+        }
 
         await checkAndResetDaily(data);
         await check30MinAfterPaid(data);
@@ -270,7 +222,9 @@
         renderTable(finalData);
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
-        showToast("Lỗi kết nối CSDL!", "error");
+        // Hiển thị chi tiết lỗi lên màn hình để bạn dễ sửa
+        showToast("Lỗi CSDL: " + err.message, "error");
+        document.getElementById("roomTable").innerHTML = `<tr><td colspan="5" style="padding:30px; text-align:center; color:red;">Kết nối thất bại. Kiểm tra Console (F12) để biết chi tiết.</td></tr>`;
       } finally {
         if (showLoading) showLoading(false);
       }
@@ -295,16 +249,13 @@
     async function check30MinAfterPaid(data) {
       const now = new Date();
       let needsUpdate = false;
-      
       for (const room of data) {
         if (room.trang_thai === 'da thanh toan' && room.thoi_gian_thanh_toan) {
           const [h, m] = room.thoi_gian_thanh_toan.split(':').map(Number);
           const paidTime = new Date();
           paidTime.setHours(h, m, 0, 0);
-          
           let diffMs = now - paidTime;
           if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000; 
-          
           if ((diffMs / 1000 / 60) >= 30) {
             await supabaseClient.from('thungan').update({
               trang_thai: 'chua mo', so_tien: 0, thoi_gian: '', thoi_gian_thanh_toan: ''
@@ -319,12 +270,10 @@
     function renderTable(data) {
       const table = document.getElementById("roomTable");
       let html = "";
-      
       data.forEach(room => {
-        const displayName = getDisplayName(room.ten_phong); // Lấy tên có dấu
+        const displayName = getDisplayName(room.ten_phong);
         const statusInfo = statusMap[room.trang_thai] || statusMap['chua mo'];
         const isDangMo = room.trang_thai === 'dang mo';
-        
         const displayAmount = (room.so_tien && room.so_tien > 0) ? formatNumber(room.so_tien) : "";
         const displayTime = (room.thoi_gian && room.thoi_gian !== '00:00') ? room.thoi_gian : "";
 
@@ -357,9 +306,8 @@
       const { error } = await supabaseClient.from('thungan').update({
         trang_thai: 'dang mo', so_tien: 0, thoi_gian: getCurrentTime(), thoi_gian_thanh_toan: ''
       }).eq('ten_phong', roomName);
-      
       if (!error) { showToast(`Đã mở ${getDisplayName(roomName)}`); await loadRooms(false); } 
-      else showToast("Lỗi khi mở phòng!", "error");
+      else showToast("Lỗi: " + error.message, "error");
       showLoading(false);
     }
 
@@ -375,8 +323,8 @@
       const amount = parseNumber(document.getElementById(`amount-${roomName}`).value);
       showLoading(true);
       const { error } = await supabaseClient.from('thungan').update({ so_tien: amount }).eq('ten_phong', roomName);
-      if (!error) { showToast(`Đã cập nhật số tiền ${getDisplayName(roomName)}`); await loadRooms(false); } 
-      else showToast("Lỗi khi cập nhật!", "error");
+      if (!error) { showToast(`Đã cập nhật ${getDisplayName(roomName)}`); await loadRooms(false); } 
+      else showToast("Lỗi: " + error.message, "error");
       showLoading(false);
     }
 
@@ -385,9 +333,8 @@
       const { error } = await supabaseClient.from('thungan').update({
         trang_thai: 'da thanh toan', thoi_gian_thanh_toan: getCurrentTime()
       }).eq('ten_phong', roomName);
-
       if (!error) { showToast(`Đã thanh toán ${getDisplayName(roomName)}`); await loadRooms(false); } 
-      else showToast("Lỗi khi thanh toán!", "error");
+      else showToast("Lỗi: " + error.message, "error");
       showLoading(false);
     }
 
@@ -398,20 +345,15 @@
     }
     setInterval(updateClock, 1000); updateClock();
 
-    // Khởi chạy
     initData();
-    setInterval(() => loadRooms(false), 30000); // Load nền mỗi 30s để đề phòng mất kết nối realtime
+    setInterval(() => loadRooms(false), 30000);
 
-    // ================= NETWORK SPEED MONITOR =================
+    // Speed Test (Giữ nguyên logic cũ)
     const swDot = document.getElementById('swDot'), swDl = document.getElementById('swDl');
     const swUl = document.getElementById('swUl'), swPg = document.getElementById('swPg');
     const swStatus = document.getElementById('swStatus'), speedWidget = document.getElementById('speedWidget');
     let speedTestRunning = false;
-
-    function swSetStatus(text, testing = false) {
-      swStatus.textContent = text; swDot.className = testing ? 'dot testing' : 'dot';
-    }
-
+    function swSetStatus(text, testing = false) { swStatus.textContent = text; swDot.className = testing ? 'dot testing' : 'dot'; }
     async function measurePing(iterations = 6) {
       const pings = [];
       for (let i = 0; i < iterations; i++) {
@@ -422,7 +364,6 @@
       pings.sort((a, b) => a - b);
       return pings.slice(1, -1).reduce((s, v) => s + v, 0) / (pings.length - 2);
     }
-
     async function measureDownload(durationMs = 5000) {
       const startTime = performance.now(); let totalBytes = 0;
       const controller = new AbortController();
@@ -438,10 +379,8 @@
           } catch(e) { if (e.name !== 'AbortError') break; }
         }
       }));
-      const elapsed = (performance.now() - startTime) / 1000;
-      return elapsed > 0 ? (totalBytes * 8) / (elapsed * 1000000) : 0;
+      return ((performance.now() - startTime) / 1000) > 0 ? (totalBytes * 8) / (((performance.now() - startTime) / 1000) * 1000000) : 0;
     }
-
     async function measureUpload(durationMs = 4000) {
       const startTime = performance.now(); let totalBytes = 0;
       const data = new Blob([new ArrayBuffer(1000000)]);
@@ -453,10 +392,8 @@
           catch(e) { if (e.name !== 'AbortError') break; }
         }
       }));
-      const elapsed = (performance.now() - startTime) / 1000;
-      return elapsed > 0 ? (totalBytes * 8) / (elapsed * 1000000) : 0;
+      return ((performance.now() - startTime) / 1000) > 0 ? (totalBytes * 8) / (((performance.now() - startTime) / 1000) * 1000000) : 0;
     }
-
     async function runSpeedTest() {
       if (speedTestRunning) return; speedTestRunning = true; swSetStatus('Đang đo...', true);
       try {
