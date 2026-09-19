@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Thu ngân Karaoke</title>
+  <title>Thu ngân Karaoke Rita</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -109,6 +109,17 @@
     .loading-overlay.active { display: flex; }
     .spinner { width: 44px; height: 44px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white;
+      padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(100px); opacity: 0;
+      transition: all 0.3s ease; z-index: 2000;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.error { background: var(--danger); }
+    .toast.success { background: var(--success); }
   </style>
 </head>
 <body>
@@ -117,13 +128,14 @@
   <div id="passwordOverlay">
     <div class="password-box">
       <h2>🔒 Nhập mật khẩu</h2>
-      <input type="password" id="passwordInput" placeholder="••••" maxlength="4">
+      <input type="password" id="passwordInput" placeholder="••••" maxlength="4" autocomplete="off">
       <button onclick="checkPassword()">Đăng nhập</button>
       <div class="error-msg" id="errorMsg">Mật khẩu không đúng!</div>
     </div>
   </div>
 
   <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+  <div class="toast" id="toast"></div>
 
   <header class="app-header">
     <h1>THU NGÂN <span>Karaoke Rita</span></h1>
@@ -151,12 +163,13 @@
 
   <script>
     // ================= CẤU HÌNH =================
-    const SUPABASE_URL = 'https://nmgofzqtebcnfhttaudy.supabase.co'; // Thay bằng URL của bạn
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZ29menF0ZWJjbmZodHRhdWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1OTQ3NzQsImV4cCI6MjEwMjE3MDc3NH0.R9sPaChT0I96n42zSVI5umCITV9G7y-H2cl18qK3RMY'; // Thay bằng Anon Key của bạn
+    const SUPABASE_URL = 'https://nmgofzqtebcnfhttaudy.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZ29menF0ZWJjbmZodHRhdWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1OTQ3NzQsImV4cCI6MjEwMjE3MDc3NH0.R9sPaChT0I96n42zSVI5umCITV9G7y-H2cl18qK3RMY';
     const PASSWORD = '6868';
     const ROOMS = ['Phong 3', 'Phong 4', 'Phong 5', 'Phong 6', 'Phong 7', 'Phong 8', 'Phong 9'];
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Đổi tên biến thành supabaseClient để tránh hoàn toàn lỗi redeclaration
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ================= XỬ LÝ MẬT KHẨU =================
     function checkPassword() {
@@ -167,6 +180,7 @@
       } else {
         document.getElementById('errorMsg').style.display = 'block';
         document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
       }
     }
     document.getElementById('passwordInput').addEventListener('keypress', function(e) {
@@ -182,7 +196,13 @@
       document.getElementById('loadingOverlay').classList.toggle('active', show);
     }
 
-    // Map trạng thái không dấu sang có dấu để hiển thị
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast show ${type}`;
+      setTimeout(() => { toast.className = 'toast'; }, 3000);
+    }
+
     const statusMap = {
       'chua mo': { text: 'Chưa mở', class: 'status-chua-mo' },
       'dang mo': { text: 'Đang mở', class: 'status-dang-mo' },
@@ -193,18 +213,18 @@
     async function loadRooms() {
       showLoading(true);
       try {
-        const { data, error } = await supabase.from('thungan').select('*').order('ten_phong', { ascending: true });
+        const { data, error } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
         if (error) throw error;
 
-        // Kiểm tra và tự động reset nếu đã qua 5:00 sáng và chưa reset hôm nay
         await checkAndResetDaily(data);
 
-        // Fetch lại dữ liệu sau khi có thể đã reset
-        const { data: finalData } = await supabase.from('thungan').select('*').order('ten_phong', { ascending: true });
+        const { data: finalData, error: fetchError } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
+        if (fetchError) throw fetchError;
+        
         renderTable(finalData);
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
-        alert("Không thể kết nối đến cơ sở dữ liệu!");
+        showToast("Lỗi kết nối CSDL! Kiểm tra URL/Key hoặc RLS.", "error");
       } finally {
         showLoading(false);
       }
@@ -215,79 +235,107 @@
       const currentHour = now.getHours();
       const todayStr = now.toISOString().split('T')[0];
 
-      // Nếu là sau 5 giờ sáng và ngày cập nhật cuối cùng không phải hôm nay
-      if (currentHour >= 5 && currentData.length > 0 && currentData[0].ngay_cap_nhat < todayStr) {
-        console.log("Đang thực hiện reset dữ liệu ngày mới...");
-        for (const room of ROOMS) {
-          await supabase.from('thungan').update({
-            trang_thai: 'chua mo',
-            so_tien: 0,
-            thoi_gian: '00:00',
-            ngay_cap_nhat: todayStr
-          }).eq('ten_phong', room);
+      if (currentHour >= 5 && currentData.length > 0) {
+        // Kiểm tra xem có phòng nào chưa được reset hôm nay không
+        const needsReset = currentData.some(room => {
+          const roomDate = room.ngay_cap_nhat ? room.ngay_cap_nhat.split('T')[0] : '';
+          return roomDate < todayStr;
+        });
+
+        if (needsReset) {
+          console.log("Đang thực hiện reset dữ liệu ngày mới...");
+          for (const room of ROOMS) {
+            await supabaseClient.from('thungan').update({
+              trang_thai: 'chua mo',
+              so_tien: 0,
+              thoi_gian: '00:00',
+              ngay_cap_nhat: todayStr
+            }).eq('ten_phong', room);
+          }
+          showToast("Đã tự động reset dữ liệu ngày mới", "success");
         }
       }
     }
 
     function renderTable(data) {
       const table = document.getElementById("roomTable");
-      table.innerHTML = "";
-
+      // Không xóa trắng table ngay lập tức để tránh nhấp nháy, chỉ cập nhật từng hàng
+      // Nhưng để đơn giản và đồng bộ, ta sẽ rebuild nhưng giữ lại giá trị đang gõ
+      
+      let html = "";
       data.forEach(room => {
-        const tr = document.createElement("tr");
         const statusInfo = statusMap[room.trang_thai] || statusMap['chua mo'];
-        const currentAmount = parseNumber(document.getElementById(`amount-${room.ten_phong}`)?.value || 0);
+        const existingInput = document.getElementById(`amount-${room.ten_phong}`);
+        
+        // GIỮ LẠI GIÁ TRỊ ĐANG GÕ NẾU INPUT ĐANG ĐƯỢC FOCUS (Chống mất dữ liệu khi auto-refresh 30s)
+        const isFocused = existingInput === document.activeElement;
+        const displayValue = isFocused ? existingInput.value : formatNumber(room.so_tien);
+        
+        const currentAmount = parseNumber(displayValue);
         const dbAmount = room.so_tien || 0;
         const isAmountChanged = currentAmount !== dbAmount;
 
-        // Xác định trạng thái nút bấm
-        const isChuaMo = room.trang_thai === 'chua mo';
         const isDangMo = room.trang_thai === 'dang mo';
-        const isDaThanhToan = room.trang_thai === 'da thanh toan';
-
+        
         const openDisabled = isDangMo;
         const paidDisabled = !isDangMo;
         const updateDisabled = !isDangMo || !isAmountChanged;
 
-        tr.innerHTML = `
-          <td><span class="room-name">${room.ten_phong.replace('Phong', 'Phòng')}</span></td>
-          <td>
-            <input type="text" class="amount-input" id="amount-${room.ten_phong}" 
-              value="${formatNumber(room.so_tien)}" 
-              oninput="onAmountChange('${room.ten_phong}')"
-              onkeypress="if(event.key==='Enter'){updateAmount('${room.ten_phong}')}">
-          </td>
-          <td>
-            <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
-              <button class="btn btn-open" ${openDisabled ? 'disabled' : ''} onclick="openRoom('${room.ten_phong}')">
-                🔓 Mở phòng
-              </button>
-              <button class="btn btn-update ${!updateDisabled ? 'enabled' : ''}" ${updateDisabled ? 'disabled' : ''} onclick="updateAmount('${room.ten_phong}')">
-                💾 Cập nhật
-              </button>
-              <button class="btn btn-paid" ${paidDisabled ? 'disabled' : ''} onclick="markPaid('${room.ten_phong}')">
-                ✅ Thanh toán
-              </button>
-            </div>
-          </td>
-          <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
-          <td style="color:var(--text-secondary); font-weight:600;">${room.thoi_gian}</td>
+        html += `
+          <tr>
+            <td><span class="room-name">${room.ten_phong.replace('Phong', 'Phòng')}</span></td>
+            <td>
+              <input type="text" class="amount-input" id="amount-${room.ten_phong}" 
+                value="${displayValue}" 
+                autocomplete="off"
+                oninput="onAmountChange('${room.ten_phong}')"
+                onkeypress="if(event.key==='Enter'){updateAmount('${room.ten_phong}')}">
+            </td>
+            <td>
+              <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+                <button class="btn btn-open" ${openDisabled ? 'disabled' : ''} onclick="openRoom('${room.ten_phong}')">
+                  🔓 Mở phòng
+                </button>
+                <button class="btn btn-update ${!updateDisabled ? 'enabled' : ''}" ${updateDisabled ? 'disabled' : ''} onclick="updateAmount('${room.ten_phong}')">
+                  💾 Cập nhật
+                </button>
+                <button class="btn btn-paid" ${paidDisabled ? 'disabled' : ''} onclick="markPaid('${room.ten_phong}')">
+                  ✅ Thanh toán
+                </button>
+              </div>
+            </td>
+            <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
+            <td style="color:var(--text-secondary); font-weight:600;">${room.thoi_gian}</td>
+          </tr>
         `;
-        table.appendChild(tr);
       });
+      table.innerHTML = html;
+      
+      // Focus lại input nếu nó đang được focus trước khi render
+      if (isFocused && existingInput) {
+        existingInput.focus();
+        // Đặt con trỏ về cuối chuỗi
+        const len = existingInput.value.length;
+        existingInput.setSelectionRange(len, len);
+      }
     }
 
     // ================= HÀNH ĐỘNG =================
     async function openRoom(roomName) {
       showLoading(true);
       const timeNow = getCurrentTime();
-      const { error } = await supabase.from('thungan').update({
+      const { error } = await supabaseClient.from('thungan').update({
         trang_thai: 'dang mo',
         so_tien: 0,
         thoi_gian: timeNow
       }).eq('ten_phong', roomName);
       
-      if (!error) await loadRooms();
+      if (!error) {
+        showToast(`Đã mở ${roomName.replace('Phong', 'Phòng')}`);
+        await loadRooms();
+      } else {
+        showToast("Lỗi khi mở phòng!", "error");
+      }
       showLoading(false);
     }
 
@@ -296,7 +344,6 @@
       const raw = input.value.replace(/\./g, "").replace(/,/g, "");
       input.value = raw ? Number(raw).toLocaleString("vi-VN") : "";
       
-      // Kích hoạt nút cập nhật
       const btn = document.querySelector(`button[onclick="updateAmount('${roomName}')"]`);
       if (btn && btn.disabled) {
         btn.disabled = false;
@@ -309,21 +356,31 @@
       const amount = parseNumber(input.value);
       
       showLoading(true);
-      const { error } = await supabase.from('thungan').update({
+      const { error } = await supabaseClient.from('thungan').update({
         so_tien: amount
       }).eq('ten_phong', roomName);
 
-      if (!error) await loadRooms();
+      if (!error) {
+        showToast("Đã cập nhật số tiền");
+        await loadRooms();
+      } else {
+        showToast("Lỗi khi cập nhật!", "error");
+      }
       showLoading(false);
     }
 
     async function markPaid(roomName) {
       showLoading(true);
-      const { error } = await supabase.from('thungan').update({
+      const { error } = await supabaseClient.from('thungan').update({
         trang_thai: 'da thanh toan'
       }).eq('ten_phong', roomName);
 
-      if (!error) await loadRooms();
+      if (!error) {
+        showToast(`Đã thanh toán ${roomName.replace('Phong', 'Phòng')}`);
+        await loadRooms();
+      } else {
+        showToast("Lỗi khi thanh toán!", "error");
+      }
       showLoading(false);
     }
 
@@ -338,7 +395,7 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Tự động làm mới dữ liệu mỗi 30 giây để đồng bộ nếu có nhiều máy thu ngân
+    // Tự động làm mới dữ liệu mỗi 30 giây
     setInterval(loadRooms, 30000);
   </script>
 </body>
