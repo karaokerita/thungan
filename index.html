@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Nhân viên Karaoke Rita</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/400.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/600.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/700.css" />
+  <style>
+    :root {
+      --primary: #007bff; --primary-dark: #0056b3;
+      --success: #28a745; --success-dark: #1e7e34;
+      --danger: #dc3545; --warning: #ff6600;
+      --bg-overlay: rgba(255, 255, 255, 0.95);
+      --radius: 12px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
+      min-height: 100vh; padding: 15px; color: #333;
+    }
+    
+    /* Login Screen */
+    #loginScreen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9); backdrop-filter: blur(5px);
+      display: flex; justify-content: center; align-items: center; z-index: 9999;
+    }
+    .login-container {
+      background: white; padding: 30px; border-radius: var(--radius);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3); max-width: 350px; width: 90%; text-align: center;
+    }
+    .login-container h2 { color: var(--primary); margin-bottom: 20px; font-size: 22px; font-weight: 700; }
+    .login-container input[type="password"] {
+      width: 100%; padding: 12px; font-size: 16px; border: 2px solid #e2e8f0;
+      border-radius: 8px; margin-bottom: 15px; text-align: center; outline: none; transition: 0.2s;
+    }
+    .login-container input[type="password"]:focus { border-color: var(--primary); }
+    .remember-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #555; margin-bottom: 15px; justify-content: center; }
+    .login-container button {
+      width: 100%; padding: 12px; font-size: 16px; font-weight: 700;
+      background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s;
+    }
+    .login-container button:hover { background: var(--primary-dark); }
+    .login-error { color: var(--danger); font-size: 14px; margin-top: 10px; display: none; font-weight: 600; }
+
+    /* Main App */
+    .container { 
+      max-width: 480px; margin: 0 auto; padding: 20px; 
+      background: var(--bg-overlay); border-radius: var(--radius); 
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15); display: none; 
+    }
+    h1 { text-align: center; color: var(--primary); font-size: 20px; font-weight: 800; margin-bottom: 5px; letter-spacing: -0.5px; }
+    #currentTime { text-align: center; font-weight: 600; font-size: 13px; color: #64748b; margin-bottom: 15px; }
+
+    /* Tabs */
+    .tab-nav { display: flex; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .tab-btn {
+      flex: 1; padding: 12px 0; text-align: center; font-size: 15px; font-weight: 700;
+      background: #e2e8f0; color: #475569; border: none; cursor: pointer; transition: 0.2s;
+    }
+    .tab-btn.active { background: var(--primary); color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Inputs & QR */
+    .amount-input, .room-select { 
+      width: 100%; font-size: 18px; font-weight: 600; padding: 12px; margin-bottom: 10px; 
+      text-align: center; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; color: #333; 
+    }
+    .amount-input:disabled, .room-select:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+    .room-name-qr { font-size: 18px; font-weight: 800; color: var(--primary); margin-bottom: 5px; text-align: center; min-height: 24px; }
+    .amount-text { font-size: 13px; color: var(--success); margin-bottom: 10px; text-align: center; min-height: 18px; font-weight: 600; font-style: italic; }
+    .qr-box { display: flex; justify-content: center; margin: 10px 0; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .qr-box img { width: 200px; height: 200px; object-fit: contain; }
+    
+    .btn-camera { 
+      width: 100%; background: var(--warning); color: white; border: none; border-radius: 8px; 
+      padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer; margin: 10px 0; transition: 0.2s; 
+    }
+    .btn-camera:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .btn-camera:active { transform: scale(0.98); }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    th, td { border-bottom: 1px solid #f1f5f9; padding: 10px 6px; text-align: center; font-size: 13px; }
+    th { background: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+    tr.bg-active { background: #eff6ff; }
+    .status-dang-mo { color: var(--primary); font-weight: 700; }
+    .status-da-thanh-toan { color: var(--success); font-weight: 700; }
+    .status-chua-mo { color: #94a3b8; }
+    
+    .btn-action { padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; margin: 2px; font-size: 12px; font-weight: 600; color: white; }
+    .btn-pay { background: var(--success); }
+    .btn-pay:disabled { background: #cbd5e1; cursor: not-allowed; }
+    .btn-qr { background: var(--primary); }
+    .btn-action:active { transform: scale(0.95); }
+
+    /* External Links */
+    .btn-link {
+      display: block; width: 100%; text-align: center; color: white; font-size: 16px; font-weight: 700;
+      padding: 12px 0; margin-top: 12px; border: none; border-radius: 8px; text-decoration: none; transition: 0.2s;
+    }
+    .btn-kho { background: var(--success); } .btn-kho:hover { background: var(--success-dark); }
+    .btn-worktime { background: var(--primary); } .btn-worktime:hover { background: var(--primary-dark); }
+
+    /* Camera Modal */
+    #cameraModal { 
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: #000; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; 
+    }
+    #video { width: 100%; height: 100%; object-fit: cover; }
+    #canvas { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    .modal-buttons { 
+      position: absolute; bottom: 30px; display: flex; justify-content: center; width: 100%; gap: 15px; padding: 0 20px; 
+    }
+    .modal-buttons button { 
+      flex: 1; font-size: 16px; font-weight: 700; padding: 14px; border: none; border-radius: 8px; cursor: pointer; 
+    }
+    .btn-save { background: var(--success); color: white; }
+    .btn-close { background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(4px); }
+
+    .no-room-hint { text-align: center; color: var(--danger); font-size: 14px; font-weight: 600; margin: 15px 0; padding: 10px; background: #fef2f2; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="loginScreen">
+    <div class="login-container">
+      <h2>🔐 Đăng nhập Nhân viên</h2>
+      <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" autocomplete="off" />
+      <div class="remember-row">
+        <input type="checkbox" id="rememberMe" />
+        <label for="rememberMe">Ghi nhớ mật khẩu</label>
+      </div>
+      <button id="loginBtn">Vào ứng dụng</button>
+      <div class="login-error" id="loginError">Mật khẩu không đúng!</div>
+    </div>
+  </div>
+
+  <!-- Main Application -->
+  <div class="container" id="mainContainer">
+    <h1>KARAOKE RITA<br><span style="font-size:14px; font-weight:600; color:#64748b;">Nhân viên phục vụ</span></h1>
+    <p id="currentTime"></p>
+
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="payment">💳 Thanh toán</button>
+      <button class="tab-btn" data-tab="advance">💰 Tạm ứng</button>
+    </div>
+
+    <!-- Tab 1: Thanh toán -->
+    <div id="tab-payment" class="tab-content active">
+      <input id="manualAmount" class="amount-input" type="text" placeholder="Nhập số tiền..." inputmode="numeric" />
+      <div class="room-name-qr" id="roomNameQR"></div>
+      <div class="amount-text" id="amountText"></div>
+      <div class="qr-box"><img id="qrImage" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="QR Thanh toán" /></div>
+      <button id="openCamera" class="btn-camera">📷 Chụp ảnh màn hình thanh toán</button>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Phòng</th>
+            <th>Số tiền</th>
+            <th>Trạng thái</th>
+            <th>Giờ</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="roomTable"></tbody>
+      </table>
+
+      <a href="https://karaokerita.github.io/qr/kho.html" class="btn-link btn-kho" target="_blank">📦 KIỂM KHO</a>
+      <a href="https://karaokerita.github.io/qr/checkout.html" class="btn-link btn-worktime" target="_blank">🕒 TÍNH GIỜ ĐI LÀM</a>
+    </div>
+
+    <!-- Tab 2: Tạm ứng -->
+    <div id="tab-advance" class="tab-content">
+      <label style="font-weight:700; font-size:14px; color:#475569; display:block; margin-bottom:5px;">🏠 Chọn phòng đang mở để tạm ứng</label>
+      <select id="advanceRoom" class="room-select" disabled>
+        <option value="">-- Đang tải danh sách --</option>
+      </select>
+      <div class="no-room-hint" id="noRoomHint" style="display:none;">⚠️ Hiện không có phòng nào đang mở để tạm ứng!</div>
+
+      <label style="font-weight:700; font-size:14px; color:#475569; display:block; margin:15px 0 5px 0;">💵 Số tiền tạm ứng</label>
+      <input id="advanceAmount" class="amount-input" type="text" placeholder="Vui lòng chọn phòng trước" disabled inputmode="numeric" />
+
+      <div class="qr-box"><img id="advanceQrImage" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="QR Tạm ứng" /></div>
+      <div class="amount-text" id="advanceAmountText"></div>
+      <button id="openCameraAdvance" class="btn-camera" disabled>📷 Chụp ảnh tạm ứng</button>
+    </div>
+  </div>
+
+  <!-- Modal Camera -->
+  <div id="cameraModal">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+    <div class="modal-buttons">
+      <button id="captureBtn" style="background:var(--primary); color:white;">📸 Chụp</button>
+      <button id="downloadBtn" class="btn-save" style="display:none;">💾 Chia sẻ / Lưu</button>
+      <button id="closeModal" class="btn-close">❌ Đóng</button>
+    </div>
+  </div>
+
+<script>
+// ================= CẤU HÌNH =================
+const SUPABASE_URL = 'https://nmgofzqtebcnfhttaudy.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZ29menF0ZWJjbmZodHRhdWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1OTQ3NzQsImV4cCI6MjEwMjE3MDc3NH0.R9sPaChT0I96n42zSVI5umCITV9G7y-H2cl18qK3RMY';
+const DEFAULT_PASSWORD = "6868";
+const REMEMBER_KEY = "karaoke_staff_remember";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Biến lưu thông tin tài khoản ngân hàng
+let bankAccounts = {
+    thanh_toan: { ten_ngan_hang: 'VCB', so_tai_khoan: '9917523946', chu_tai_khoan: 'HUYNH PHUONG TRANG' },
+    tam_ung: { ten_ngan_hang: 'VCB', so_tai_khoan: '9917523946', chu_tai_khoan: 'HUYNH PHUONG TRANG' }
+};
+
+// ================= ĐĂNG NHẬP =================
+const loginScreen = document.getElementById("loginScreen");
+const mainContainer = document.getElementById("mainContainer");
+const loginPassword = document.getElementById("loginPassword");
+const loginBtn = document.getElementById("loginBtn");
+const loginError = document.getElementById("loginError");
+const rememberMe = document.getElementById("rememberMe");
+
+function showMainApp() {
+  loginScreen.style.display = "none";
+  mainContainer.style.display = "block";
+  loginError.style.display = "none";
+  initData(); // Load data ngay khi vào
+}
+
+function handleLogin() {
+  if (loginPassword.value === DEFAULT_PASSWORD) {
+    if (rememberMe.checked) localStorage.setItem(REMEMBER_KEY, DEFAULT_PASSWORD);
+    else localStorage.removeItem(REMEMBER_KEY);
+    showMainApp();
+  } else {
+    loginError.style.display = "block";
+    loginPassword.value = "";
+    loginPassword.focus();
+  }
+}
+
+loginBtn.addEventListener("click", handleLogin);
+loginPassword.addEventListener("keypress", e => { if (e.key === "Enter") handleLogin(); });
+
+(function checkRememberedLogin() {
+  if (localStorage.getItem(REMEMBER_KEY) === DEFAULT_PASSWORD) showMainApp();
+  else loginPassword.focus();
+})();
+
+// ================= TIỆN ÍCH =================
+function updateClock() {
+  const now = new Date();
+  const days = ["CN","T2","T3","T4","T5","T6","T7"];
+  document.getElementById("currentTime").innerText = `${now.toLocaleTimeString("vi-VN",{hour12:false})} • ${days[now.getDay()]}, ${now.toLocaleDateString("vi-VN")}`;
+}
+setInterval(updateClock, 1000); updateClock();
+
+function formatNumber(num) { return Number(num).toLocaleString("vi-VN"); }
+function parseNumber(str) { return Number(str.replace(/\D/g, "")) || 0; }
+
+function readTriple(num) {
+  const units = ["","một","hai","ba","bốn","năm","sáu","bảy","tám","chín"];
+  let [h,t,o] = String(num).padStart(3,'0').split("").map(Number);
+  let s = "";
+  if(h>0) { s += units[h]+" trăm"; if(t===0&&o>0) s+=" linh"; }
+  if(t>1) { s += " "+units[t]+" mươi"; if(o===1) s+=" mốt"; else if(o===5) s+=" lăm"; else if(o>0) s+=" "+units[o]; }
+  else if(t===1) { s += " mười"; if(o===1) s+=" một"; else if(o===5) s+=" lăm"; else if(o>0) s+=" "+units[o]; }
+  else if(t===0&&o>0&&h===0) { s += units[o]; }
+  else if(o>0) { s += " "+units[o]; }
+  return s.trim();
+}
+
+function numberToWords(n) {
+  if(!n || n===0) return "không đồng";
+  const scales = ["","nghìn","triệu","tỷ"];
+  let parts = [], scaleIdx = 0;
+  while(n > 0) {
+    let chunk = n % 1000;
+    if(chunk > 0) {
+      let words = readTriple(chunk);
+      if(scales[scaleIdx]) words += " " + scales[scaleIdx];
+      parts.unshift(words);
+    }
+    n = Math.floor(n / 1000); scaleIdx++;
+  }
+  return parts.join(", ").replace(/ ,/g, ",").replace(/\s+/g, " ").trim() + " đồng";
+}
+
+// ================= LOGIC DỮ LIỆU (SUPABASE) =================
+async function initData() {
+    await loadBankAccounts();
+    await loadRooms();
+    setInterval(loadRooms, 30000); // Tự động cập nhật mỗi 30s
+}
+
+async function loadBankAccounts() {
+    try {
+        const { data, error } = await supabaseClient.from('tai_khoan_bank').select('*');
+        if (!error && data) {
+            data.forEach(acc => {
+                if (acc.loai_tai_khoan === 'thanh_toan') bankAccounts.thanh_toan = acc;
+                if (acc.loai_tai_khoan === 'tam_ung') bankAccounts.tam_ung = acc;
+            });
+        }
+    } catch (e) { console.error("Lỗi tải tài khoản bank:", e); }
+}
+
+async function loadRooms() {
+  try {
+    const { data, error } = await supabaseClient.from('thungan').select('*');
+    if (error) throw error;
+    
+    // SẮP XẾP: 'dang mo' lên đầu, sau đó xếp theo tên phòng
+    data.sort((a, b) => {
+        if (a.trang_thai === 'dang mo' && b.trang_thai !== 'dang mo') return -1;
+        if (a.trang_thai !== 'dang mo' && b.trang_thai === 'dang mo') return 1;
+        return a.ten_phong.localeCompare(b.ten_phong);
+    });
+
+    renderTable(data);
+    populateAdvanceRoomSelect(data);
+  } catch (e) {
+    console.error("Lỗi tải phòng:", e);
+  }
+}
+
+function renderTable(data) {
+  const table = document.getElementById("roomTable");
+  table.innerHTML = "";
+
+  data.forEach(room => {
+    const isActive = room.trang_thai === 'dang mo';
+    const statusClass = room.trang_thai === 'dang mo' ? 'status-dang-mo' : 
+                        room.trang_thai === 'da thanh toan' ? 'status-da-thanh-toan' : 'status-chua-mo';
+    const statusText = room.trang_thai === 'dang mo' ? 'Chưa thanh toán' : 
+                       room.trang_thai === 'da thanh toan' ? 'Đã thanh toán' : 'Chưa mở';
+    
+    const displayTime = (room.thoi_gian && room.thoi_gian !== '00:00') ? room.thoi_gian : '—';
+    const displayAmount = (room.so_tien && room.so_tien > 0) ? formatNumber(room.so_tien) : '0';
+
+    const tr = document.createElement("tr");
+    if (isActive) tr.classList.add("bg-active");
+    
+    tr.innerHTML = `
+      <td style="font-weight:700;">${room.ten_phong.replace('Phong', 'P.')}</td>
+      <td style="font-weight:600;">${displayAmount}</td>
+      <td class="${statusClass}">${statusText}</td>
+      <td>${displayTime}</td>
+      <td>
+        <button class="btn-action btn-qr" onclick="fillQR('${room.so_tien || 0}', '${room.ten_phong}')">Lấy QR</button>
+        <button class="btn-action btn-pay" ${!isActive ? 'disabled' : ''} onclick="markPaid('${room.ten_phong}')">✅ Trả</button>
+      </td>
+    `;
+    table.appendChild(tr);
+  });
+}
+
+async function markPaid(roomName) {
+  if(!confirm(`Xác nhận phòng ${roomName.replace('Phong', 'Phòng')} đã thanh toán?`)) return;
+  try {
+    const { error } = await supabaseClient.from('thungan').update({
+      trang_thai: 'da thanh toan'
+    }).eq('ten_phong', roomName);
+    
+    if (!error) {
+      alert("Đã cập nhật trạng thái thành công!");
+      loadRooms();
+    } else {
+      alert("Lỗi khi cập nhật: " + error.message);
+    }
+  } catch(e) { alert("Lỗi kết nối!"); }
+}
+
+// ================= QR & TABS =================
+const tabBtns = document.querySelectorAll(".tab-btn");
+const tabContents = document.querySelectorAll(".tab-content");
+tabBtns.forEach(btn => {
+  btn.addEventListener("click", () => {
+    tabBtns.forEach(b => b.classList.remove("active"));
+    tabContents.forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+const manualAmount = document.getElementById("manualAmount");
+const qrImage = document.getElementById("qrImage");
+const amountText = document.getElementById("amountText");
+const roomNameQR = document.getElementById("roomNameQR");
+
+// Hàm tạo QR động dựa trên dữ liệu từ bảng tai_khoan_bank
+function generateQR(amount, addInfo, type = 'thanh_toan') {
+    const acc = bankAccounts[type] || bankAccounts.thanh_toan;
+    const bank = acc.ten_ngan_hang || 'VCB';
+    const accNum = acc.so_tai_khoan || '9917523946';
+    const accName = acc.chu_tai_khoan || 'HUYNH PHUONG TRANG';
+    
+    return `https://img.vietqr.io/image/${bank}-${accNum}-qr_only.png?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accName)}`;
+}
+
+function updateQR(val, roomName = "") {
+  if (roomName) roomNameQR.textContent = roomName;
+  const displayRoom = roomNameQR.textContent || "";
+  const addInfo = displayRoom ? `Thank+You+${encodeURIComponent(displayRoom)}` : `Thank+You`;
+  
+  qrImage.src = generateQR(val, addInfo, 'thanh_toan');
+  amountText.textContent = val > 0 ? numberToWords(Number(val)) : "";
+}
+
+manualAmount.addEventListener("input", function() {
+  let val = this.value.replace(/\D/g, "");
+  if (val) {
+    this.value = formatNumber(val);
+    updateQR(val);
+  } else {
+    this.value = "";
+    amountText.textContent = "";
+    qrImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    roomNameQR.textContent = "";
+  }
+});
+
+function fillQR(amount, roomName) {
+  manualAmount.value = formatNumber(amount);
+  updateQR(amount, roomName);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Advance Tab Logic
+const advanceAmount = document.getElementById("advanceAmount");
+const advanceRoom = document.getElementById("advanceRoom");
+const advanceQrImage = document.getElementById("advanceQrImage");
+const advanceAmountText = document.getElementById("advanceAmountText");
+const openCameraAdvance = document.getElementById("openCameraAdvance");
+const noRoomHint = document.getElementById("noRoomHint");
+
+function populateAdvanceRoomSelect(data) {
+  // CHỈ lấy các phòng đang mở
+  const openRooms = data.filter(r => r.trang_thai === 'dang mo');
+  const prevValue = advanceRoom.value;
+  advanceRoom.innerHTML = "";
+
+  if (openRooms.length === 0) {
+    advanceRoom.innerHTML = "<option value=''>-- Không có phòng đang mở --</option>";
+    advanceRoom.disabled = true;
+    noRoomHint.style.display = "block";
+    advanceAmount.disabled = true;
+    openCameraAdvance.disabled = true;
+    return;
+  }
+
+  noRoomHint.style.display = "none";
+  advanceRoom.disabled = false;
+  advanceRoom.innerHTML = "<option value=''>-- Chọn phòng tạm ứng --</option>";
+  
+  openRooms.forEach(room => {
+    const opt = document.createElement("option");
+    opt.value = room.ten_phong;
+    opt.textContent = room.ten_phong.replace('Phong', 'Phòng ');
+    advanceRoom.appendChild(opt);
+  });
+
+  if (prevValue && openRooms.some(r => r.ten_phong === prevValue)) {
+      advanceRoom.value = prevValue;
+  }
+  
+  updateAdvanceState();
+}
+
+function updateAdvanceState() {
+  const hasRoom = advanceRoom.value.trim() !== "";
+  advanceAmount.disabled = !hasRoom;
+  openCameraAdvance.disabled = !hasRoom;
+  
+  if (!hasRoom) {
+    advanceAmount.value = "";
+    advanceAmount.placeholder = "Vui lòng chọn phòng trước";
+    advanceQrImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    advanceAmountText.textContent = "";
+  } else {
+    advanceAmount.placeholder = "Nhập số tiền";
+    refreshAdvanceQR();
+  }
+}
+
+advanceRoom.addEventListener("change", updateAdvanceState);
+
+function refreshAdvanceQR() {
+  const roomName = advanceRoom.value.trim().replace('Phong', 'Phòng');
+  const amountRaw = advanceAmount.value.replace(/\D/g, "");
+  
+  if (amountRaw && roomName) {
+    const addInfo = `tam ung ${roomName}`;
+    // Sử dụng tài khoản 'tam_ung' từ database
+    advanceQrImage.src = generateQR(amountRaw, addInfo, 'tam_ung');
+    advanceAmountText.textContent = numberToWords(Number(amountRaw));
+  } else {
+    advanceQrImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    advanceAmountText.textContent = "";
+  }
+}
+
+advanceAmount.addEventListener("input", function() {
+  let val = this.value.replace(/\D/g, "");
+  this.value = val ? formatNumber(val) : "";
+  refreshAdvanceQR();
+});
+
+// ================= CAMERA & OVERLAY =================
+let stream;
+let currentMode = "payment";
+let currentShareText = "";
+
+const cameraModal = document.getElementById("cameraModal");
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const captureBtn = document.getElementById("captureBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const closeModal = document.getElementById("closeModal");
+
+document.getElementById("openCamera").addEventListener("click", () => openCameraModal("payment"));
+openCameraAdvance.addEventListener("click", () => openCameraModal("advance"));
+
+function openCameraModal(mode) {
+  if (mode === "payment" && !manualAmount.value) { alert("Vui lòng nhập số tiền trước khi chụp!"); return; }
+  if (mode === "advance" && (!advanceRoom.value || !advanceAmount.value)) { alert("Vui lòng chọn phòng và nhập số tiền!"); return; }
+  
+  currentMode = mode;
+  cameraModal.style.display = "flex";
+  canvas.style.display = "none";
+  downloadBtn.style.display = "none";
+  
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+    .then(s => { stream = s; video.srcObject = stream; })
+    .catch(err => { alert("Không thể truy cập camera: " + err); closeModal.click(); });
+}
+
+captureBtn.addEventListener("click", () => {
+  const ctx = canvas.getContext("2d");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const timeStr = new Date().toLocaleString('vi-VN');
+  const padding = 15;
+
+  if (currentMode === "payment") {
+    const roomName = roomNameQR.textContent || "Karaoke Rita";
+    const amountNumber = manualAmount.value;
+    currentShareText = `${roomName}\nSố tiền: ${amountNumber}\nThời gian: ${timeStr}`;
+
+    ctx.font = "bold 24px Inter, Arial";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, 0, canvas.width, 120);
+    
+    ctx.fillStyle = "#4ade80"; 
+    ctx.fillText(`${roomName}`, padding, padding);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(`Số tiền: ${amountNumber}`, padding, padding + 35);
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "18px Inter, Arial";
+    ctx.fillText(`Thời gian: ${timeStr}`, padding, padding + 70);
+  } else {
+    const roomName = advanceRoom.value.trim().replace('Phong', 'Phòng');
+    const amountNumber = advanceAmount.value;
+    currentShareText = `Tạm ứng ${roomName}\nSố tiền: ${amountNumber}\nThời gian: ${timeStr}`;
+
+    ctx.font = "bold 24px Inter, Arial";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, 0, canvas.width, 120);
+    
+    ctx.fillStyle = "#fbbf24"; 
+    ctx.fillText(`Tạm ứng: ${roomName}`, padding, padding);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(`Số tiền: ${amountNumber}`, padding, padding + 35);
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "18px Inter, Arial";
+    ctx.fillText(`Thời gian: ${timeStr}`, padding, padding + 70);
+  }
+
+  canvas.style.display = "block";
+  downloadBtn.style.display = "block";
+  captureBtn.style.display = "none";
+});
+
+downloadBtn.addEventListener("click", async () => {
+  canvas.toBlob(async (blob) => {
+    const prefix = currentMode === "payment" ? "ThanhToan" : "TamUng";
+    const file = new File([blob], `${prefix}_${Date.now()}.png`, { type: "image/png" });
+    
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "Karaoke Rita", text: currentShareText });
+      } catch(e) { console.log("Share canceled"); }
+    } else {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `${prefix}_${Date.now()}.png`;
+      link.click();
+    }
+  }, "image/png");
+});
+
+closeModal.addEventListener("click", () => {
+  cameraModal.style.display = "none";
+  captureBtn.style.display = "block";
+  if (stream) { stream.getTracks().forEach(track => track.stop()); }
+});
+</script>
+</body>
+</html>
