@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Thu ngân Karaoke Rita</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/400.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.1.0/600.css" />
@@ -15,7 +14,6 @@
       --primary: #6366f1; --primary-dark: #4f46e5;
       --success: #10b981; --success-dark: #059669;
       --danger: #ef4444; --danger-dark: #dc2626;
-      --warning: #f59e0b;
       --bg: #f1f5f9; --card: #ffffff; --text: #1e293b;
       --text-secondary: #64748b; --border: #e2e8f0;
       --shadow: 0 4px 24px rgba(0,0,0,0.08); --radius: 14px;
@@ -26,10 +24,39 @@
     .app-header {
       background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
       color: white; text-align: center; padding: 32px 20px 28px;
+      position: relative;
     }
     .app-header h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
     .app-header h1 span { display: block; font-size: 15px; font-weight: 600; opacity: 0.9; margin-top: 4px; letter-spacing: 2px; text-transform: uppercase; }
     #currentTime { font-weight: 600; font-size: 14px; margin-top: 12px; background: rgba(255,255,255,0.15); display: inline-block; padding: 6px 18px; border-radius: 20px; }
+
+    /* Speed Monitor Widget */
+    .speed-widget {
+      position: absolute; top: 16px; right: 16px; z-index: 10;
+      background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+      border-radius: 10px; padding: 10px 14px; font-size: 11px;
+      min-width: 160px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer;
+      transition: background 0.2s;
+    }
+    .speed-widget:hover { background: rgba(255,255,255,0.25); }
+    .speed-widget .sw-title {
+      font-weight: 700; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .speed-widget .sw-title .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #4ade80; display: inline-block;
+    }
+    .speed-widget .sw-title .dot.testing { background: #fbbf24; animation: blink 0.8s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .speed-widget .sw-row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
+    .speed-widget .sw-label { opacity: 0.8; font-weight: 500; }
+    .speed-widget .sw-value { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
+    .sw-val-dl { color: #93c5fd; } .sw-val-ul { color: #c4b5fd; } .sw-val-pg { color: #fda4af; }
+    .speed-widget .sw-status { font-size: 9px; opacity: 0.7; margin-top: 6px; text-align: center; }
+    @media (max-width: 600px) {
+      .speed-widget { position: relative; top: auto; right: auto; margin: 10px auto 0; max-width: 220px; }
+    }
 
     .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
     .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; border: 1px solid var(--border); }
@@ -51,6 +78,7 @@
       background: #f8fafc; transition: all 0.2s ease;
     }
     .amount-input:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(99,102,241,0.1); }
+    .amount-input::placeholder { color: #cbd5e1; font-weight: 400; }
 
     .btn {
       padding: 8px 14px; border: none; border-radius: 10px; cursor: pointer;
@@ -85,7 +113,6 @@
     .spinner { width: 44px; height: 44px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Toast Notification */
     .toast {
       position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white;
       padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
@@ -103,6 +130,14 @@
   <div class="toast" id="toast"></div>
 
   <header class="app-header">
+    <div class="speed-widget" id="speedWidget" title="Nhấn để kiểm tra lại tốc độ">
+      <div class="sw-title"><span class="dot" id="swDot"></span> Tốc độ mạng</div>
+      <div class="sw-row"><span class="sw-label">↓ Tải xuống</span><span class="sw-value sw-val-dl" id="swDl">— Mbps</span></div>
+      <div class="sw-row"><span class="sw-label">↑ Tải lên</span><span class="sw-value sw-val-ul" id="swUl">— Mbps</span></div>
+      <div class="sw-row"><span class="sw-label">◎ Độ trễ</span><span class="sw-value sw-val-pg" id="swPg">— ms</span></div>
+      <div class="sw-status" id="swStatus">Nhấn để kiểm tra</div>
+    </div>
+
     <h1>THU NGÂN <span>Karaoke Rita</span></h1>
     <div id="currentTime"></div>
   </header>
@@ -127,26 +162,20 @@
   </div>
 
   <script>
-    // ================= CẤU HÌNH =================
     const SUPABASE_URL = 'https://nmgofzqtebcnfhttaudy.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZ29menF0ZWJjbmZodHRhdWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1OTQ3NzQsImV4cCI6MjEwMjE3MDc3NH0.R9sPaChT0I96n42zSVI5umCITV9G7y-H2cl18qK3RMY';
     const ROOMS = ['Phong 3', 'Phong 4', 'Phong 5', 'Phong 6', 'Phong 7', 'Phong 8', 'Phong 9'];
     
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ================= TIỆN ÍCH =================
-    const formatNumber = n => n ? Number(n).toLocaleString("vi-VN") : "0";
+    const formatNumber = n => n ? Number(n).toLocaleString("vi-VN") : "";
     const parseNumber = str => Number(str.replace(/\./g, "").replace(/,/g, "")) || 0;
     const getCurrentTime = () => new Date().toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit', hour12: false });
     
-    function showLoading(show) {
-      document.getElementById('loadingOverlay').classList.toggle('active', show);
-    }
-
+    function showLoading(show) { document.getElementById('loadingOverlay').classList.toggle('active', show); }
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
-      toast.textContent = message;
-      toast.className = `toast show ${type}`;
+      toast.textContent = message; toast.className = `toast show ${type}`;
       setTimeout(() => { toast.className = 'toast'; }, 3000);
     }
 
@@ -156,7 +185,6 @@
       'da thanh toan': { text: 'Đã thanh toán', class: 'status-da-thanh-toan' }
     };
 
-    // ================= LOGIC CHÍNH =================
     async function loadRooms() {
       showLoading(true);
       try {
@@ -164,43 +192,56 @@
         if (error) throw error;
 
         await checkAndResetDaily(data);
+        await check30MinAfterPaid(data); // Logic mới: Reset sau 30 phút thanh toán
 
-        const { data: finalData, error: fetchError } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
-        if (fetchError) throw fetchError;
-        
+        const { data: finalData } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
         renderTable(finalData);
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
         showToast("Lỗi kết nối CSDL!", "error");
-      } finally {
-        showLoading(false);
-      }
+      } finally { showLoading(false); }
     }
 
     async function checkAndResetDaily(currentData) {
       const now = new Date();
-      const currentHour = now.getHours();
       const todayStr = now.toISOString().split('T')[0];
-
-      if (currentHour >= 5 && currentData.length > 0) {
-        const needsReset = currentData.some(room => {
-          const roomDate = room.ngay_cap_nhat ? room.ngay_cap_nhat.split('T')[0] : '';
-          return roomDate < todayStr;
-        });
-
+      if (now.getHours() >= 5 && currentData.length > 0) {
+        const needsReset = currentData.some(room => (room.ngay_cap_nhat || '').split('T')[0] < todayStr);
         if (needsReset) {
-          console.log("Đang thực hiện reset dữ liệu ngày mới...");
           for (const room of ROOMS) {
             await supabaseClient.from('thungan').update({
-              trang_thai: 'chua mo',
-              so_tien: 0,
-              thoi_gian: '00:00',
-              ngay_cap_nhat: todayStr
+              trang_thai: 'chua mo', so_tien: 0, thoi_gian: '', thoi_gian_thanh_toan: '', ngay_cap_nhat: todayStr
             }).eq('ten_phong', room);
           }
           showToast("Đã tự động reset dữ liệu ngày mới", "success");
         }
       }
+    }
+
+    // LOGIC MỚI: Tự động reset nếu trạng thái "Đã thanh toán" quá 30 phút
+    async function check30MinAfterPaid(data) {
+      const now = new Date();
+      let needsUpdate = false;
+      
+      for (const room of data) {
+        if (room.trang_thai === 'da thanh toan' && room.thoi_gian_thanh_toan) {
+          const [h, m] = room.thoi_gian_thanh_toan.split(':').map(Number);
+          const paidTime = new Date();
+          paidTime.setHours(h, m, 0, 0);
+          
+          let diffMs = now - paidTime;
+          if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000; // Xử lý qua đêm
+          
+          if ((diffMs / 1000 / 60) >= 30) {
+            console.log(`Tự động reset phòng ${room.ten_phong} sau 30 phút thanh toán`);
+            await supabaseClient.from('thungan').update({
+              trang_thai: 'chua mo', so_tien: 0, thoi_gian: '', thoi_gian_thanh_toan: ''
+            }).eq('ten_phong', room.ten_phong);
+            needsUpdate = true;
+          }
+        }
+      }
+      if (needsUpdate) showToast("Đã tự động đóng các phòng quá 30 phút sau thanh toán", "success");
     }
 
     function renderTable(data) {
@@ -211,57 +252,42 @@
         const statusInfo = statusMap[room.trang_thai] || statusMap['chua mo'];
         const isDangMo = room.trang_thai === 'dang mo';
         
-        const openDisabled = isDangMo;
-        const paidDisabled = !isDangMo;
-        const updateDisabled = !isDangMo;
+        // MẶC ĐỊNH RNG: Chỉ hiện khi có giá trị thực
+        const displayAmount = (room.so_tien && room.so_tien > 0) ? formatNumber(room.so_tien) : "";
+        const displayTime = (room.thoi_gian && room.thoi_gian !== '00:00') ? room.thoi_gian : "";
 
         html += `
           <tr>
             <td><span class="room-name">${room.ten_phong.replace('Phong', 'Phòng')}</span></td>
             <td>
               <input type="text" class="amount-input" id="amount-${room.ten_phong}" 
-                value="${formatNumber(room.so_tien)}" 
-                autocomplete="off"
+                value="${displayAmount}" placeholder="0" autocomplete="off"
                 oninput="onAmountChange('${room.ten_phong}')"
                 onkeypress="if(event.key==='Enter'){updateAmount('${room.ten_phong}')}">
             </td>
             <td>
               <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
-                <button class="btn btn-open" id="open-${room.ten_phong}" ${openDisabled ? 'disabled' : ''} onclick="openRoom('${room.ten_phong}')">
-                  🔓 Mở phòng
-                </button>
-                <button class="btn btn-update" id="update-${room.ten_phong}" disabled onclick="updateAmount('${room.ten_phong}')">
-                  💾 Cập nhật
-                </button>
-                <button class="btn btn-paid" id="paid-${room.ten_phong}" ${paidDisabled ? 'disabled' : ''} onclick="markPaid('${room.ten_phong}')">
-                  ✅ Thanh toán
-                </button>
+                <button class="btn btn-open" ${isDangMo ? 'disabled' : ''} onclick="openRoom('${room.ten_phong}')">🔓 Mở phòng</button>
+                <button class="btn btn-update" id="update-${room.ten_phong}" disabled onclick="updateAmount('${room.ten_phong}')">💾 Cập nhật</button>
+                <button class="btn btn-paid" ${!isDangMo ? 'disabled' : ''} onclick="markPaid('${room.ten_phong}')">✅ Thanh toán</button>
               </div>
             </td>
             <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
-            <td style="color:var(--text-secondary); font-weight:600;">${room.thoi_gian}</td>
+            <td style="color:var(--text-secondary); font-weight:600;">${displayTime || '—'}</td>
           </tr>
         `;
       });
       table.innerHTML = html;
     }
 
-    // ================= HÀNH ĐỘNG =================
     async function openRoom(roomName) {
       showLoading(true);
-      const timeNow = getCurrentTime();
       const { error } = await supabaseClient.from('thungan').update({
-        trang_thai: 'dang mo',
-        so_tien: 0,
-        thoi_gian: timeNow
+        trang_thai: 'dang mo', so_tien: 0, thoi_gian: getCurrentTime(), thoi_gian_thanh_toan: ''
       }).eq('ten_phong', roomName);
       
-      if (!error) {
-        showToast(`Đã mở ${roomName.replace('Phong', 'Phòng')}`);
-        await loadRooms();
-      } else {
-        showToast("Lỗi khi mở phòng!", "error");
-      }
+      if (!error) { showToast(`Đã mở ${roomName.replace('Phong', 'Phòng')}`); await loadRooms(); } 
+      else showToast("Lỗi khi mở phòng!", "error");
       showLoading(false);
     }
 
@@ -269,63 +295,109 @@
       const input = document.getElementById(`amount-${roomName}`);
       const raw = input.value.replace(/\./g, "").replace(/,/g, "");
       input.value = raw ? Number(raw).toLocaleString("vi-VN") : "";
-      
       const btn = document.getElementById(`update-${roomName}`);
-      if (btn) {
-        btn.disabled = false;
-        btn.classList.add('enabled');
-      }
+      if (btn) { btn.disabled = false; btn.classList.add('enabled'); }
     }
 
     async function updateAmount(roomName) {
-      const input = document.getElementById(`amount-${roomName}`);
-      const amount = parseNumber(input.value);
-      
+      const amount = parseNumber(document.getElementById(`amount-${roomName}`).value);
       showLoading(true);
-      const { error } = await supabaseClient.from('thungan').update({
-        so_tien: amount
-      }).eq('ten_phong', roomName);
-
-      if (!error) {
-        showToast("Đã cập nhật số tiền");
-        await loadRooms();
-      } else {
-        showToast("Lỗi khi cập nhật!", "error");
-      }
+      const { error } = await supabaseClient.from('thungan').update({ so_tien: amount }).eq('ten_phong', roomName);
+      if (!error) { showToast("Đã cập nhật số tiền"); await loadRooms(); } 
+      else showToast("Lỗi khi cập nhật!", "error");
       showLoading(false);
     }
 
     async function markPaid(roomName) {
       showLoading(true);
+      // Lưu lại giờ thanh toán để tính toán 30 phút
       const { error } = await supabaseClient.from('thungan').update({
-        trang_thai: 'da thanh toan'
+        trang_thai: 'da thanh toan', thoi_gian_thanh_toan: getCurrentTime()
       }).eq('ten_phong', roomName);
 
-      if (!error) {
-        showToast(`Đã thanh toán ${roomName.replace('Phong', 'Phòng')}`);
-        await loadRooms();
-      } else {
-        showToast("Lỗi khi thanh toán!", "error");
-      }
+      if (!error) { showToast(`Đã thanh toán ${roomName.replace('Phong', 'Phòng')}`); await loadRooms(); } 
+      else showToast("Lỗi khi thanh toán!", "error");
       showLoading(false);
     }
 
-    // ================= ĐỒNG HỒ =================
     function updateClock() {
       const now = new Date();
       const days = ["Chủ Nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"];
-      const time = now.toLocaleTimeString("vi-VN", { hour12: false });
-      const date = now.toLocaleDateString("vi-VN");
-      document.getElementById("currentTime").innerText = `${time} • ${days[now.getDay()]}, ${date}`;
+      document.getElementById("currentTime").innerText = `${now.toLocaleTimeString("vi-VN", {hour12: false})} • ${days[now.getDay()]}, ${now.toLocaleDateString("vi-VN")}`;
     }
-    setInterval(updateClock, 1000);
-    updateClock();
+    setInterval(updateClock, 1000); updateClock();
 
-    // Tự động load khi trang web mở
     loadRooms();
-    
-    // Tự động làm mới dữ liệu mỗi 30 giây
     setInterval(loadRooms, 30000);
+
+    // ================= NETWORK SPEED MONITOR =================
+    const swDot = document.getElementById('swDot'), swDl = document.getElementById('swDl');
+    const swUl = document.getElementById('swUl'), swPg = document.getElementById('swPg');
+    const swStatus = document.getElementById('swStatus'), speedWidget = document.getElementById('speedWidget');
+    let speedTestRunning = false;
+
+    function swSetStatus(text, testing = false) {
+      swStatus.textContent = text; swDot.className = testing ? 'dot testing' : 'dot';
+    }
+
+    async function measurePing(iterations = 6) {
+      const pings = [];
+      for (let i = 0; i < iterations; i++) {
+        const start = performance.now();
+        try { await fetch('https://www.cloudflare.com/favicon.ico?_=' + Date.now(), { mode: 'no-cors', cache: 'no-store' }); } catch(e) {}
+        pings.push(performance.now() - start);
+      }
+      pings.sort((a, b) => a - b);
+      return pings.slice(1, -1).reduce((s, v) => s + v, 0) / (pings.length - 2);
+    }
+
+    async function measureDownload(durationMs = 5000) {
+      const startTime = performance.now(); let totalBytes = 0;
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), durationMs + 2000);
+      await Promise.allSettled(Array.from({ length: 2 }, async () => {
+        while (performance.now() - startTime < durationMs) {
+          try {
+            const resp = await fetch('https://speed.cloudflare.com/__down?bytes=10000000&_=' + Date.now(), { signal: controller.signal, cache: 'no-store' });
+            const reader = resp.body.getReader();
+            while (performance.now() - startTime < durationMs) {
+              const { done, value } = await reader.read(); if (done) break; totalBytes += value.length;
+            }
+          } catch(e) { if (e.name !== 'AbortError') break; }
+        }
+      }));
+      const elapsed = (performance.now() - startTime) / 1000;
+      return elapsed > 0 ? (totalBytes * 8) / (elapsed * 1000000) : 0;
+    }
+
+    async function measureUpload(durationMs = 4000) {
+      const startTime = performance.now(); let totalBytes = 0;
+      const data = new Blob([new ArrayBuffer(1000000)]);
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), durationMs + 2000);
+      await Promise.allSettled(Array.from({ length: 2 }, async () => {
+        while (performance.now() - startTime < durationMs) {
+          try { await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: data, signal: controller.signal, cache: 'no-store' }); totalBytes += 1000000; } 
+          catch(e) { if (e.name !== 'AbortError') break; }
+        }
+      }));
+      const elapsed = (performance.now() - startTime) / 1000;
+      return elapsed > 0 ? (totalBytes * 8) / (elapsed * 1000000) : 0;
+    }
+
+    async function runSpeedTest() {
+      if (speedTestRunning) return; speedTestRunning = true; swSetStatus('Đang đo...', true);
+      try {
+        swPg.textContent = Math.round(await measurePing(6)) + ' ms'; swSetStatus('Đo tải xuống...', true);
+        const dl = await measureDownload(5000); swDl.textContent = dl > 0 ? dl.toFixed(1) + ' Mbps' : '— Mbps';
+        swSetStatus('Đo tải lên...', true);
+        const ul = await measureUpload(4000); swUl.textContent = ul > 0 ? ul.toFixed(1) + ' Mbps' : '— Mbps';
+        swSetStatus('Cập nhật lúc ' + new Date().toLocaleTimeString('vi-VN', { hour12: false }));
+      } catch(e) { swSetStatus('Lỗi, thử lại sau...'); }
+      speedTestRunning = false;
+    }
+    speedWidget.addEventListener('click', runSpeedTest);
+    setInterval(runSpeedTest, 10 * 60 * 1000); runSpeedTest();
   </script>
 </body>
 </html>
