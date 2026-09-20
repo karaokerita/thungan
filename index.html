@@ -215,7 +215,6 @@ const REMEMBER_KEY = "karaoke_staff_remember";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ÁNH XẠ TÊN PHÒNG: DB (không dấu) -> Giao diện (có dấu)
 const ROOM_NAME_MAP = {
   'Phong 3': 'Phòng 3', 'Phong 4': 'Phòng 4', 'Phong 5': 'Phòng 5',
   'Phong 6': 'Phòng 6', 'Phong 7': 'Phòng 7', 'Phong 8': 'Phòng 8', 'Phong 9': 'Phòng 9'
@@ -305,33 +304,42 @@ function numberToWords(n) {
 }
 
 // ================= LOGIC DỮ LIỆU & REALTIME =================
-let isInitialLoad = true;
-
 async function initData() {
+    console.log("🚀 Khởi tạo ứng dụng nhân viên...");
     await loadBankAccounts();
-    await loadRooms();
+    await loadRooms(true); // Load lần đầu có loading
     
-    // LẮNG NGHE THAY ĐỔI REALTIME TỪ SUPABASE
-    supabaseClient
-      .channel('thungan-realtime')
+    // 1. LẮNG NGHE REALTIME TỪ SUPABASE
+    const channel = supabaseClient
+      .channel('thungan-realtime-staff')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'thungan' }, async (payload) => {
-        console.log("Có thay đổi dữ liệu từ thu ngân:", payload);
+        console.log("🔄 Nhận thay đổi Realtime từ thu ngân:", payload);
         
-        // Bảo vệ: Nếu người dùng đang gõ số tiền thủ công, giữ lại giá trị họ đang gõ
+        // Bảo vệ: Nếu đang gõ ở ô số tiền (thanh toán hoặc tạm ứng), giữ lại giá trị
         const activeEl = document.activeElement;
-        const isTypingManual = activeEl && activeEl.id === 'manualAmount';
-        const savedManualVal = isTypingManual ? activeEl.value : null;
+        const isTyping = activeEl && (activeEl.id === 'manualAmount' || activeEl.id === 'advanceAmount');
+        const savedVal = isTyping ? activeEl.value : null;
+        const savedId = isTyping ? activeEl.id : null;
 
-        await loadRooms(false); // Load lại dữ liệu, false = không hiện loading spinner gây nhấp nháy
+        await loadRooms(false); // Load lại không hiện loading
 
-        // Khôi phục giá trị đang gõ nếu có
-        if (isTypingManual && savedManualVal !== null) {
-          activeEl.value = savedManualVal;
-          // Kích hoạt lại sự kiện input để cập nhật QR nếu cần
-          activeEl.dispatchEvent(new Event('input'));
+        if (isTyping && savedId) {
+          const el = document.getElementById(savedId);
+          if (el) {
+            el.value = savedVal;
+            el.dispatchEvent(new Event('input')); // Kích hoạt lại cập nhật QR
+          }
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log("📡 Trạng thái kết nối Realtime:", status);
+      });
+
+    // 2. CƠ CHẾ DỰ PHÒNG (FALLBACK): Tự động load mỗi 15 giây nếu Realtime bị rớt
+    setInterval(() => {
+      console.log("⏱️ Fallback: Tự động đồng bộ dữ liệu...");
+      loadRooms(false);
+    }, 15000);
 }
 
 async function loadBankAccounts() {
@@ -347,7 +355,19 @@ async function loadBankAccounts() {
 }
 
 async function loadRooms(showLoading = true) {
-  if (showLoading) document.getElementById("loadingOverlay")?.classList.add("active");
+  if (showLoading) {
+    // Tạo loading đơn giản nếu chưa có element
+    let loader = document.getElementById("loadingOverlay");
+    if(!loader) {
+        loader = document.createElement("div");
+        loader.id = "loadingOverlay";
+        loader.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);z-index:9998;display:flex;justify-content:center;align-items:center;";
+        loader.innerHTML = "<div style='width:40px;height:40px;border:4px solid #fff;border-top-color:#007bff;border-radius:50%;animation:spin 1s linear infinite'></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>";
+        document.body.appendChild(loader);
+    }
+    loader.style.display = "flex";
+  }
+  
   try {
     const { data, error } = await supabaseClient.from('thungan').select('*');
     if (error) throw error;
@@ -362,9 +382,12 @@ async function loadRooms(showLoading = true) {
     renderTable(data);
     populateAdvanceRoomSelect(data);
   } catch (e) {
-    console.error("Lỗi tải phòng:", e);
+    console.error("❌ Lỗi tải phòng:", e);
   } finally {
-    if (showLoading) document.getElementById("loadingOverlay")?.classList.remove("active");
+    if (showLoading) {
+      const loader = document.getElementById("loadingOverlay");
+      if(loader) loader.style.display = "none";
+    }
   }
 }
 
@@ -373,7 +396,7 @@ function renderTable(data) {
   table.innerHTML = "";
 
   data.forEach(room => {
-    const displayName = getDisplayName(room.ten_phong); // Lấy tên có dấu
+    const displayName = getDisplayName(room.ten_phong);
     const isActive = room.trang_thai === 'dang mo';
     const statusClass = room.trang_thai === 'dang mo' ? 'status-dang-mo' : 
                         room.trang_thai === 'da thanh toan' ? 'status-da-thanh-toan' : 'status-chua-mo';
@@ -410,7 +433,6 @@ async function markPaid(roomName) {
     
     if (!error) {
       alert(`Đã cập nhật trạng thái cho ${displayName}!`);
-      // Không cần loadRooms() ở đây vì Realtime sẽ tự bắt sự thay đổi
     } else {
       alert("Lỗi khi cập nhật: " + error.message);
     }
@@ -439,7 +461,6 @@ function generateQR(amount, addInfo, type = 'thanh_toan') {
     const bank = acc.ten_ngan_hang || 'VCB';
     const accNum = acc.so_tai_khoan || '9917523946';
     const accName = acc.chu_tai_khoan || 'HUYNH PHUONG TRANG';
-    
     return `https://img.vietqr.io/image/${bank}-${accNum}-qr_only.png?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accName)}`;
 }
 
@@ -448,7 +469,6 @@ function updateQR(val, dbRoomName = "") {
   if (displayName) roomNameQR.textContent = displayName;
   
   const currentDisplayRoom = roomNameQR.textContent || "";
-  // YÊU CẦU: "Thank you" + tên phòng (ví dụ: Thank you Phòng 4)
   const addInfo = currentDisplayRoom ? `Thank you ${currentDisplayRoom}` : `Thank you`;
   
   qrImage.src = generateQR(val, addInfo, 'thanh_toan');
@@ -459,13 +479,11 @@ manualAmount.addEventListener("input", function() {
   let val = this.value.replace(/\D/g, "");
   if (val) {
     this.value = formatNumber(val);
-    // Giữ nguyên phòng đang hiển thị nếu có, nếu không thì chỉ cập nhật số tiền
     updateQR(val, roomNameQR.textContent ? Object.keys(ROOM_NAME_MAP).find(key => ROOM_NAME_MAP[key] === roomNameQR.textContent) : "");
   } else {
     this.value = "";
     amountText.textContent = "";
     qrImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-    // Không xóa roomNameQR để giữ ngữ cảnh nếu người dùng xóa số tiền
   }
 });
 
@@ -504,14 +522,13 @@ function populateAdvanceRoomSelect(data) {
   openRooms.forEach(room => {
     const opt = document.createElement("option");
     opt.value = room.ten_phong;
-    opt.textContent = getDisplayName(room.ten_phong); // Hiển thị có dấu
+    opt.textContent = getDisplayName(room.ten_phong);
     advanceRoom.appendChild(opt);
   });
 
   if (prevValue && openRooms.some(r => r.ten_phong === prevValue)) {
       advanceRoom.value = prevValue;
   }
-  
   updateAdvanceState();
 }
 
