@@ -24,45 +24,6 @@
       min-height: 100vh; padding: 15px; color: #333;
     }
     
-    /* Connection Status Indicator */
-    #connectionStatus {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 700;
-      color: white;
-      z-index: 9998;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      transition: all 0.3s ease;
-    }
-    #connectionStatus .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #4ade80;
-    }
-    #connectionStatus .dot.syncing {
-      background: #fbbf24;
-      animation: pulse 1s infinite;
-    }
-    #connectionStatus .dot.error {
-      background: #dc3545;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    #connectionStatus.live { background: #10b981; }
-    #connectionStatus.syncing { background: #f59e0b; }
-    #connectionStatus.error { background: #dc3545; }
-
-    /* Login Screen */
     #loginScreen {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.9); backdrop-filter: blur(5px);
@@ -86,7 +47,6 @@
     .login-container button:hover { background: var(--primary-dark); }
     .login-error { color: var(--danger); font-size: 14px; margin-top: 10px; display: none; font-weight: 600; }
 
-    /* Main App */
     .container { 
       max-width: 480px; margin: 0 auto; padding: 20px; 
       background: var(--bg-overlay); border-radius: var(--radius); 
@@ -95,7 +55,6 @@
     h1 { text-align: center; color: var(--primary); font-size: 20px; font-weight: 800; margin-bottom: 5px; letter-spacing: -0.5px; }
     #currentTime { text-align: center; font-weight: 600; font-size: 13px; color: #64748b; margin-bottom: 15px; }
 
-    /* Tabs */
     .tab-nav { display: flex; margin-bottom: 15px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .tab-btn {
       flex: 1; padding: 12px 0; text-align: center; font-size: 15px; font-weight: 700;
@@ -106,7 +65,6 @@
     .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Inputs & QR */
     .amount-input, .room-select { 
       width: 100%; font-size: 18px; font-weight: 600; padding: 12px; margin-bottom: 10px; 
       text-align: center; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; color: #333; 
@@ -124,51 +82,37 @@
     .btn-camera:disabled { background: #cbd5e1; cursor: not-allowed; }
     .btn-camera:active { transform: scale(0.98); }
 
-    /* Table */
     table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    th, td { border-bottom: 1px solid #f1f5f9; padding: 10px 6px; text-align: center; font-size: 13px; }
+    th, td { border-bottom: 1px solid #f1f5f9; padding: 10px 6px; text-align: center; font-size: 13px; transition: all 0.3s ease; }
     th { background: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
     
-    /* Hàng phòng đang mở - viền đỏ nhẹ */
-    tr.bg-active { 
+    /*  TỐI ƯU: Trạng thái "Chưa thanh toán" (dang mo) - MÀU ĐỎ NỔI BẬT */
+    tr.bg-unpaid { 
       background: #fef2f2; 
-      border-left: 3px solid var(--danger);
+      animation: pulse-red 2s ease-in-out infinite;
     }
-    
-    /* Tên phòng đang mở - MÀU ĐỎ NỔI BẬT */
-    .room-name-active {
-      color: var(--danger) !important;
-      font-weight: 800 !important;
-      font-size: 14px !important;
+    @keyframes pulse-red {
+      0%, 100% { background: #fef2f2; }
+      50% { background: #fee2e2; }
+    }
+    .room-name-unpaid { 
+      color: var(--danger); 
+      font-weight: 800; 
+      font-size: 14px;
       text-shadow: 0 0 2px rgba(220, 53, 69, 0.2);
     }
-    
-    /* Badge trạng thái */
-    .status-dang-mo { 
-      background: var(--danger); 
-      color: white; 
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 12px;
+    .status-unpaid { 
+      color: var(--danger); 
+      font-weight: 800; 
+      font-size: 13px;
+      background: #fee2e2;
+      padding: 3px 8px;
+      border-radius: 6px;
       display: inline-block;
-      animation: blink-red 2s ease-in-out infinite;
+      border: 1px solid #fecaca;
     }
-    @keyframes blink-red {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.85; }
-    }
-    .status-da-thanh-toan { 
-      background: #d1fae5; 
-      color: var(--success-dark); 
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 12px;
-      display: inline-block;
-    }
-    .status-chua-mo { 
-      color: #94a3b8; 
-      font-weight: 600;
-    }
+    .status-paid { color: var(--success); font-weight: 700; }
+    .status-closed { color: #94a3b8; font-weight: 600; }
     
     .btn-action { padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; margin: 2px; font-size: 12px; font-weight: 600; color: white; }
     .btn-pay { background: var(--success); }
@@ -176,7 +120,6 @@
     .btn-qr { background: var(--primary); }
     .btn-action:active { transform: scale(0.95); }
 
-    /* External Links */
     .btn-link {
       display: block; width: 100%; text-align: center; color: white; font-size: 16px; font-weight: 700;
       padding: 12px 0; margin-top: 12px; border: none; border-radius: 8px; text-decoration: none; transition: 0.2s;
@@ -184,7 +127,6 @@
     .btn-kho { background: var(--success); } .btn-kho:hover { background: var(--success-dark); }
     .btn-worktime { background: var(--primary); } .btn-worktime:hover { background: var(--primary-dark); }
 
-    /* Camera Modal */
     #cameraModal { 
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
       background: #000; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; 
@@ -205,16 +147,9 @@
 </head>
 <body>
 
-  <!-- Connection Status -->
-  <div id="connectionStatus" class="live">
-    <span class="dot"></span>
-    <span id="connectionText">Đang kết nối...</span>
-  </div>
-
-  <!-- Login Screen -->
   <div id="loginScreen">
     <div class="login-container">
-      <h2> Đăng nhập Nhân viên</h2>
+      <h2>🔐 Đăng nhập Nhân viên</h2>
       <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" autocomplete="off" />
       <div class="remember-row">
         <input type="checkbox" id="rememberMe" />
@@ -225,23 +160,21 @@
     </div>
   </div>
 
-  <!-- Main Application -->
   <div class="container" id="mainContainer">
     <h1>KARAOKE RITA<br><span style="font-size:14px; font-weight:600; color:#64748b;">Nhân viên phục vụ</span></h1>
     <p id="currentTime"></p>
 
     <div class="tab-nav">
-      <button class="tab-btn active" data-tab="payment">💳 Thanh toán</button>
+      <button class="tab-btn active" data-tab="payment"> Thanh toán</button>
       <button class="tab-btn" data-tab="advance">💰 Tạm ứng</button>
     </div>
 
-    <!-- Tab 1: Thanh toán -->
     <div id="tab-payment" class="tab-content active">
       <input id="manualAmount" class="amount-input" type="text" placeholder="Nhập số tiền..." inputmode="numeric" />
       <div class="room-name-qr" id="roomNameQR"></div>
       <div class="amount-text" id="amountText"></div>
       <div class="qr-box"><img id="qrImage" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="QR Thanh toán" /></div>
-      <button id="openCamera" class="btn-camera">📷 Chụp ảnh màn hình thanh toán</button>
+      <button id="openCamera" class="btn-camera"> Chụp ảnh màn hình thanh toán</button>
 
       <table>
         <thead>
@@ -257,10 +190,9 @@
       </table>
 
       <a href="https://karaokerita.github.io/qr/kho.html" class="btn-link btn-kho" target="_blank">📦 KIỂM KHO</a>
-      <a href="https://karaokerita.github.io/qr/checkout.html" class="btn-link btn-worktime" target="_blank"> TÍNH GIỜ ĐI LÀM</a>
+      <a href="https://karaokerita.github.io/qr/checkout.html" class="btn-link btn-worktime" target="_blank">🕒 TÍNH GIỜ ĐI LÀM</a>
     </div>
 
-    <!-- Tab 2: Tạm ứng -->
     <div id="tab-advance" class="tab-content">
       <label style="font-weight:700; font-size:14px; color:#475569; display:block; margin-bottom:5px;">🏠 Chọn phòng đang mở để tạm ứng</label>
       <select id="advanceRoom" class="room-select" disabled>
@@ -277,7 +209,6 @@
     </div>
   </div>
 
-  <!-- Modal Camera -->
   <div id="cameraModal">
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
@@ -289,7 +220,6 @@
   </div>
 
 <script>
-// ================= CẤU HÌNH =================
 const SUPABASE_URL = 'https://nmgofzqtebcnfhttaudy.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZ29menF0ZWJjbmZodHRhdWR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1OTQ3NzQsImV4cCI6MjEwMjE3MDc3NH0.R9sPaChT0I96n42zSVI5umCITV9G7y-H2cl18qK3RMY';
 const DEFAULT_PASSWORD = "6868";
@@ -302,20 +232,16 @@ const ROOM_NAME_MAP = {
   'Phong 6': 'Phòng 6', 'Phong 7': 'Phòng 7', 'Phong 8': 'Phòng 8', 'Phong 9': 'Phòng 9'
 };
 
-function getDisplayName(dbName) {
-  return ROOM_NAME_MAP[dbName] || dbName;
-}
+function getDisplayName(dbName) { return ROOM_NAME_MAP[dbName] || dbName; }
 
 let bankAccounts = {
     thanh_toan: { ten_ngan_hang: 'VCB', so_tai_khoan: '9917523946', chu_tai_khoan: 'HUYNH PHUONG TRANG' },
     tam_ung: { ten_ngan_hang: 'VCB', so_tai_khoan: '9917523946', chu_tai_khoan: 'HUYNH PHUONG TRANG' }
 };
 
-// Biến lưu dữ liệu cũ để so sánh (diff check)
-let previousDataHash = '';
-let lastUpdateTime = 0;
+// Lưu cache dữ liệu cũ để so sánh diff
+let previousRoomsData = [];
 
-// ================= ĐĂNG NHẬP =================
 const loginScreen = document.getElementById("loginScreen");
 const mainContainer = document.getElementById("mainContainer");
 const loginPassword = document.getElementById("loginPassword");
@@ -350,7 +276,6 @@ loginPassword.addEventListener("keypress", e => { if (e.key === "Enter") handleL
   else loginPassword.focus();
 })();
 
-// ================= TIỆN ÍCH =================
 function updateClock() {
   const now = new Date();
   const days = ["CN","T2","T3","T4","T5","T6","T7"];
@@ -359,7 +284,6 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 function formatNumber(num) { return Number(num).toLocaleString("vi-VN"); }
-function parseNumber(str) { return Number(str.replace(/\D/g, "")) || 0; }
 
 function readTriple(num) {
   const units = ["","một","hai","ba","bốn","năm","sáu","bảy","tám","chín"];
@@ -389,79 +313,44 @@ function numberToWords(n) {
   return parts.join(", ").replace(/ ,/g, ",").replace(/\s+/g, " ").trim() + " đồng";
 }
 
-// Connection status UI
-function setConnectionStatus(status, text) {
-  const el = document.getElementById('connectionStatus');
-  const dot = el.querySelector('.dot');
-  const textEl = document.getElementById('connectionText');
-  el.className = status;
-  dot.className = 'dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : '');
-  textEl.textContent = text;
-}
-
-// ================= LOGIC DỮ LIỆU & REALTIME =================
+// ================= LOGIC DỮ LIỆU & REALTIME TỐI ƯU =================
 async function initData() {
-    console.log(" Khởi tạo ứng dụng nhân viên...");
-    setConnectionStatus('syncing', 'Đang tải...');
-    
+    console.log("🚀 Khởi tạo ứng dụng nhân viên...");
     await loadBankAccounts();
     await loadRooms(true);
     
-    setConnectionStatus('live', 'Đã đồng bộ');
-    
-    // 1. LẮNG NGHE REALTIME TỪ SUPABASE
-    setupRealtime();
+    // 1. REALTIME - Lắng nghe thay đổi tức thì
+    const channel = supabaseClient
+      .channel('thungan-realtime-staff')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'thungan' }, async (payload) => {
+        console.log("🔄 Realtime:", payload.eventType, payload.new?.ten_phong);
+        
+        // Bảo vệ ô đang gõ
+        const activeEl = document.activeElement;
+        const isTyping = activeEl && (activeEl.id === 'manualAmount' || activeEl.id === 'advanceAmount');
+        const savedVal = isTyping ? activeEl.value : null;
+        const savedId = isTyping ? activeEl.id : null;
 
-    // 2. CƠ CHẾ DỰ PHÒNG: Tự động load mỗi 5 giây (tối ưu tốc độ)
+        // Dùng requestAnimationFrame để render mượt, không nghẽn UI
+        requestAnimationFrame(async () => {
+          await loadRooms(false);
+          if (isTyping && savedId) {
+            const el = document.getElementById(savedId);
+            if (el) {
+              el.value = savedVal;
+              el.dispatchEvent(new Event('input'));
+            }
+          }
+        });
+      })
+      .subscribe((status) => {
+        console.log("📡 Realtime status:", status);
+      });
+
+    // 2. FALLBACK - Tự động đồng bộ mỗi 5 giây (nhanh hơn trước)
     setInterval(() => {
       loadRooms(false);
     }, 5000);
-}
-
-function setupRealtime() {
-  const channel = supabaseClient
-    .channel('thungan-realtime-staff-v2')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'thungan' }, async (payload) => {
-      console.log("🔄 Realtime change:", payload);
-      setConnectionStatus('syncing', 'Đang cập nhật...');
-      
-      const activeEl = document.activeElement;
-      const isTyping = activeEl && (activeEl.id === 'manualAmount' || activeEl.id === 'advanceAmount');
-      const savedVal = isTyping ? activeEl.value : null;
-      const savedId = isTyping ? activeEl.id : null;
-
-      await loadRooms(false);
-
-      if (isTyping && savedId) {
-        const el = document.getElementById(savedId);
-        if (el) {
-          el.value = savedVal;
-          el.dispatchEvent(new Event('input'));
-        }
-      }
-      
-      setTimeout(() => setConnectionStatus('live', 'Đã đồng bộ'), 1000);
-    })
-    .on('system', { event: '*' }, (payload) => {
-      console.log("📡 System event:", payload);
-      if (payload.status === 'CLOSED' || payload.status === 'CHANNEL_ERROR') {
-        setConnectionStatus('error', 'Mất kết nối');
-        // Tự động reconnect sau 3 giây
-        setTimeout(() => {
-          console.log("🔄 Đang reconnect...");
-          channel.unsubscribe();
-          setupRealtime();
-        }, 3000);
-      }
-    })
-    .subscribe((status) => {
-      console.log("📡 Realtime status:", status);
-      if (status === 'SUBSCRIBED') {
-        setConnectionStatus('live', 'Realtime ON');
-      } else if (status === 'CHANNEL_ERROR') {
-        setConnectionStatus('error', 'Lỗi kênh');
-      }
-    });
 }
 
 async function loadBankAccounts() {
@@ -473,12 +362,7 @@ async function loadBankAccounts() {
                 if (acc.loai_tai_khoan === 'tam_ung') bankAccounts.tam_ung = acc;
             });
         }
-    } catch (e) { console.error("Lỗi tải tài khoản bank:", e); }
-}
-
-// Tạo hash đơn giản để so sánh dữ liệu cũ/mới
-function createDataHash(data) {
-  return data.map(r => `${r.ten_phong}:${r.trang_thai}:${r.so_tien}:${r.thoi_gian}`).join('|');
+    } catch (e) { console.error("Lỗi tải bank:", e); }
 }
 
 async function loadRooms(showLoading = true) {
@@ -498,28 +382,22 @@ async function loadRooms(showLoading = true) {
     const { data, error } = await supabaseClient.from('thungan').select('*');
     if (error) throw error;
     
-    // SẮP XẾP: 'dang mo' lên đầu, sau đó xếp theo tên phòng
+    // Sắp xếp: 'dang mo' lên đầu
     data.sort((a, b) => {
         if (a.trang_thai === 'dang mo' && b.trang_thai !== 'dang mo') return -1;
         if (a.trang_thai !== 'dang mo' && b.trang_thai === 'dang mo') return 1;
         return a.ten_phong.localeCompare(b.ten_phong);
     });
 
-    // DIFF CHECK: Chỉ render khi dữ liệu thay đổi
-    const newHash = createDataHash(data);
-    if (newHash !== previousDataHash) {
-      console.log("📊 Dữ liệu thay đổi, đang render...");
-      previousDataHash = newHash;
+    // ⚡ TỐI ƯU: Chỉ render lại nếu có thay đổi thực sự
+    const dataChanged = hasDataChanged(previousRoomsData, data);
+    if (dataChanged) {
       renderTable(data);
       populateAdvanceRoomSelect(data);
-      lastUpdateTime = Date.now();
-    } else {
-      // Dữ liệu không đổi, chỉ cập nhật dropdown tạm ứng (vì có thể phòng mới mở)
-      populateAdvanceRoomSelect(data);
+      previousRoomsData = JSON.parse(JSON.stringify(data)); // Deep clone
     }
   } catch (e) {
     console.error("❌ Lỗi tải phòng:", e);
-    setConnectionStatus('error', 'Lỗi kết nối');
   } finally {
     if (showLoading) {
       const loader = document.getElementById("loadingOverlay");
@@ -528,47 +406,74 @@ async function loadRooms(showLoading = true) {
   }
 }
 
+// ⚡ Hàm so sánh nhanh để tránh render không cần thiết
+function hasDataChanged(oldData, newData) {
+  if (!oldData || oldData.length !== newData.length) return true;
+  for (let i = 0; i < newData.length; i++) {
+    if (oldData[i].so_tien !== newData[i].so_tien ||
+        oldData[i].trang_thai !== newData[i].trang_thai ||
+        oldData[i].thoi_gian !== newData[i].thoi_gian) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ⚡ Render tối ưu: chỉ tạo DOM 1 lần, sau đó chỉ cập nhật nội dung
 function renderTable(data) {
   const table = document.getElementById("roomTable");
-  table.innerHTML = "";
-
-  data.forEach(room => {
+  
+  // Nếu số hàng khác -> render lại toàn bộ
+  if (table.children.length !== data.length) {
+    table.innerHTML = "";
+    data.forEach(room => {
+      const tr = document.createElement("tr");
+      tr.dataset.roomId = room.ten_phong;
+      tr.innerHTML = `
+        <td class="cell-name"></td>
+        <td class="cell-amount"></td>
+        <td class="cell-status"></td>
+        <td class="cell-time"></td>
+        <td class="cell-actions"></td>
+      `;
+      table.appendChild(tr);
+    });
+  }
+  
+  // Cập nhật nội dung từng hàng (nhanh hơn xóa và tạo lại)
+  const rows = table.children;
+  data.forEach((room, index) => {
+    const tr = rows[index];
+    if (!tr) return;
+    
     const displayName = getDisplayName(room.ten_phong);
-    const isActive = room.trang_thai === 'dang mo';
-    
-    // MÀU ĐỎ NỔI BẬT cho trạng thái "Chưa thanh toán" (đang mở)
-    let roomNameHtml, statusHtml;
-    
-    if (isActive) {
-      // Tên phòng màu đỏ + in đậm
-      roomNameHtml = `<span class="room-name-active">${displayName}</span>`;
-      // Badge trạng thái màu đỏ
-      statusHtml = `<span class="status-dang-mo">Chưa thanh toán</span>`;
-    } else if (room.trang_thai === 'da thanh toan') {
-      roomNameHtml = `<span style="font-weight:700; color:#64748b;">${displayName}</span>`;
-      statusHtml = `<span class="status-da-thanh-toan">Đã thanh toán</span>`;
-    } else {
-      roomNameHtml = `<span style="font-weight:700; color:#94a3b8;">${displayName}</span>`;
-      statusHtml = `<span class="status-chua-mo">Chưa mở</span>`;
-    }
+    const isUnpaid = room.trang_thai === 'dang mo';
+    const isPaid = room.trang_thai === 'da thanh toan';
     
     const displayTime = (room.thoi_gian && room.thoi_gian !== '00:00') ? room.thoi_gian : '—';
     const displayAmount = (room.so_tien && room.so_tien > 0) ? formatNumber(room.so_tien) : '0';
-
-    const tr = document.createElement("tr");
-    if (isActive) tr.classList.add("bg-active");
     
-    tr.innerHTML = `
-      <td>${roomNameHtml}</td>
-      <td style="font-weight:600; ${isActive ? 'color:var(--danger);' : ''}">${displayAmount}</td>
-      <td>${statusHtml}</td>
-      <td>${displayTime}</td>
-      <td>
-        <button class="btn-action btn-qr" onclick="fillQR('${room.so_tien || 0}', '${room.ten_phong}')">Lấy QR</button>
-        <button class="btn-action btn-pay" ${!isActive ? 'disabled' : ''} onclick="markPaid('${room.ten_phong}')">✅ Trả</button>
-      </td>
+    //  MÀU ĐỎ NỔI BẬT cho phòng chưa thanh toán
+    if (isUnpaid) {
+      tr.className = 'bg-unpaid';
+      tr.querySelector('.cell-name').innerHTML = `<span class="room-name-unpaid">🔴 ${displayName}</span>`;
+      tr.querySelector('.cell-status').innerHTML = `<span class="status-unpaid">CHƯA THANH TOÁN</span>`;
+    } else if (isPaid) {
+      tr.className = '';
+      tr.querySelector('.cell-name').innerHTML = `<span style="color:#64748b; font-weight:600;">${displayName}</span>`;
+      tr.querySelector('.cell-status').innerHTML = `<span class="status-paid">✓ Đã thanh toán</span>`;
+    } else {
+      tr.className = '';
+      tr.querySelector('.cell-name').innerHTML = `<span style="color:#94a3b8; font-weight:600;">${displayName}</span>`;
+      tr.querySelector('.cell-status').innerHTML = `<span class="status-closed">Chưa mở</span>`;
+    }
+    
+    tr.querySelector('.cell-amount').innerHTML = `<span style="font-weight:700; color:${isUnpaid ? 'var(--danger)' : '#1e293b'}">${displayAmount}</span>`;
+    tr.querySelector('.cell-time').textContent = displayTime;
+    tr.querySelector('.cell-actions').innerHTML = `
+      <button class="btn-action btn-qr" onclick="fillQR('${room.so_tien || 0}', '${room.ten_phong}')">Lấy QR</button>
+      <button class="btn-action btn-pay" ${!isUnpaid ? 'disabled' : ''} onclick="markPaid('${room.ten_phong}')">✅ Trả</button>
     `;
-    table.appendChild(tr);
   });
 }
 
@@ -583,7 +488,7 @@ async function markPaid(roomName) {
     if (!error) {
       alert(`Đã cập nhật trạng thái cho ${displayName}!`);
     } else {
-      alert("Lỗi khi cập nhật: " + error.message);
+      alert("Lỗi: " + error.message);
     }
   } catch(e) { alert("Lỗi kết nối!"); }
 }
@@ -607,10 +512,7 @@ const roomNameQR = document.getElementById("roomNameQR");
 
 function generateQR(amount, addInfo, type = 'thanh_toan') {
     const acc = bankAccounts[type] || bankAccounts.thanh_toan;
-    const bank = acc.ten_ngan_hang || 'VCB';
-    const accNum = acc.so_tai_khoan || '9917523946';
-    const accName = acc.chu_tai_khoan || 'HUYNH PHUONG TRANG';
-    return `https://img.vietqr.io/image/${bank}-${accNum}-qr_only.png?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(accName)}`;
+    return `https://img.vietqr.io/image/${acc.ten_ngan_hang}-${acc.so_tai_khoan}-qr_only.png?amount=${amount}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(acc.chu_tai_khoan)}`;
 }
 
 function updateQR(val, dbRoomName = "") {
@@ -642,7 +544,7 @@ function fillQR(amount, dbRoomName) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Advance Tab Logic
+// Advance Tab
 const advanceAmount = document.getElementById("advanceAmount");
 const advanceRoom = document.getElementById("advanceRoom");
 const advanceQrImage = document.getElementById("advanceQrImage");
@@ -675,9 +577,7 @@ function populateAdvanceRoomSelect(data) {
     advanceRoom.appendChild(opt);
   });
 
-  if (prevValue && openRooms.some(r => r.ten_phong === prevValue)) {
-      advanceRoom.value = prevValue;
-  }
+  if (prevValue && openRooms.some(r => r.ten_phong === prevValue)) advanceRoom.value = prevValue;
   updateAdvanceState();
 }
 
@@ -705,8 +605,7 @@ function refreshAdvanceQR() {
   const amountRaw = advanceAmount.value.replace(/\D/g, "");
   
   if (amountRaw && dbRoomName) {
-    const addInfo = `tam ung ${displayName}`;
-    advanceQrImage.src = generateQR(amountRaw, addInfo, 'tam_ung');
+    advanceQrImage.src = generateQR(amountRaw, `tam ung ${displayName}`, 'tam_ung');
     advanceAmountText.textContent = numberToWords(Number(amountRaw));
   } else {
     advanceQrImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -720,10 +619,8 @@ advanceAmount.addEventListener("input", function() {
   refreshAdvanceQR();
 });
 
-// ================= CAMERA & OVERLAY =================
-let stream;
-let currentMode = "payment";
-let currentShareText = "";
+// ================= CAMERA =================
+let stream, currentMode = "payment", currentShareText = "";
 
 const cameraModal = document.getElementById("cameraModal");
 const video = document.getElementById("video");
@@ -736,7 +633,7 @@ document.getElementById("openCamera").addEventListener("click", () => openCamera
 openCameraAdvance.addEventListener("click", () => openCameraModal("advance"));
 
 function openCameraModal(mode) {
-  if (mode === "payment" && !manualAmount.value) { alert("Vui lòng nhập số tiền trước khi chụp!"); return; }
+  if (mode === "payment" && !manualAmount.value) { alert("Vui lòng nhập số tiền trước!"); return; }
   if (mode === "advance" && (!advanceRoom.value || !advanceAmount.value)) { alert("Vui lòng chọn phòng và nhập số tiền!"); return; }
   
   currentMode = mode;
@@ -767,7 +664,6 @@ captureBtn.addEventListener("click", () => {
     ctx.textBaseline = "top";
     ctx.fillStyle = "rgba(0,0,0,0.6)";
     ctx.fillRect(0, 0, canvas.width, 120);
-    
     ctx.fillStyle = "#4ade80"; 
     ctx.fillText(`${roomName}`, padding, padding);
     ctx.fillStyle = "#ffffff";
@@ -776,8 +672,7 @@ captureBtn.addEventListener("click", () => {
     ctx.font = "18px Inter, Arial";
     ctx.fillText(`Thời gian: ${timeStr}`, padding, padding + 70);
   } else {
-    const dbRoomName = advanceRoom.value.trim();
-    const roomName = getDisplayName(dbRoomName);
+    const roomName = getDisplayName(advanceRoom.value.trim());
     const amountNumber = advanceAmount.value;
     currentShareText = `Tạm ứng ${roomName}\nSố tiền: ${amountNumber}\nThời gian: ${timeStr}`;
 
@@ -785,7 +680,6 @@ captureBtn.addEventListener("click", () => {
     ctx.textBaseline = "top";
     ctx.fillStyle = "rgba(0,0,0,0.6)";
     ctx.fillRect(0, 0, canvas.width, 120);
-    
     ctx.fillStyle = "#fbbf24"; 
     ctx.fillText(`Tạm ứng: ${roomName}`, padding, padding);
     ctx.fillStyle = "#ffffff";
@@ -806,9 +700,8 @@ downloadBtn.addEventListener("click", async () => {
     const file = new File([blob], `${prefix}_${Date.now()}.png`, { type: "image/png" });
     
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: "Karaoke Rita", text: currentShareText });
-      } catch(e) { console.log("Share canceled"); }
+      try { await navigator.share({ files: [file], title: "Karaoke Rita", text: currentShareText }); } 
+      catch(e) { console.log("Share canceled"); }
     } else {
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
