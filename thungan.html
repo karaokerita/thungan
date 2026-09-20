@@ -59,7 +59,10 @@
     tbody tr:hover { background: #f8fafc; }
     tbody td { padding: 14px; text-align: center; vertical-align: middle; font-size: 14px; }
     
+    /* TỐI ƯU GIAO DIỆN: Màu đỏ nổi bật cho phòng đang mở */
     .room-name { font-weight: 700; font-size: 16px; color: var(--text); }
+    .room-name-unpaid { font-weight: 800; font-size: 16px; color: var(--danger); text-shadow: 0 0 2px rgba(239, 68, 68, 0.2); }
+    
     .amount-input { width: 140px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 15px; font-weight: 600; text-align: right; background: #f8fafc; transition: all 0.2s ease; }
     .amount-input:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(99,102,241,0.1); }
     .amount-input::placeholder { color: #cbd5e1; font-weight: 400; }
@@ -78,8 +81,13 @@
 
     .status-badge { display: inline-block; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; }
     .status-chua-mo { background: #f1f5f9; color: #64748b; }
-    .status-dang-mo { background: #dbeafe; color: #1e40af; }
+    /* Trạng thái đang mở màu đỏ nổi bật */
+    .status-dang-mo-red { background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; }
     .status-da-thanh-toan { background: #d1fae5; color: #065f46; }
+
+    /* Hiệu ứng nhấp nháy nhẹ cho hàng đang mở */
+    tr.bg-unpaid { background: #fef2f2; animation: pulse-red-bg 3s ease-in-out infinite; }
+    @keyframes pulse-red-bg { 0%, 100% { background: #fef2f2; } 50% { background: #fee2e2; } }
 
     .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 1000; justify-content: center; align-items: center; }
     .loading-overlay.active { display: flex; }
@@ -156,38 +164,40 @@
     const parseNumber = str => Number(str.replace(/\./g, "").replace(/,/g, "")) || 0;
     const getCurrentTime = () => new Date().toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit', hour12: false });
     
-    // Hàm hiển thị loading
-    function showLoading(show) { 
-      document.getElementById('loadingOverlay').classList.toggle('active', show); 
-    }
+    function showLoading(show) { document.getElementById('loadingOverlay').classList.toggle('active', show); }
     
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
       toast.textContent = message; 
       toast.className = `toast show ${type}`;
-      setTimeout(() => { toast.className = 'toast'; }, 5000);
+      setTimeout(() => { toast.className = 'toast'; }, 4000);
     }
 
     const statusMap = {
       'chua mo': { text: 'Chưa mở', class: 'status-chua-mo' },
-      'dang mo': { text: 'Đang mở', class: 'status-dang-mo' },
+      'dang mo': { text: 'Đang mở', class: 'status-dang-mo-red' }, // Đổi class thành màu đỏ
       'da thanh toan': { text: 'Đã thanh toán', class: 'status-da-thanh-toan' }
     };
 
+    // Lưu cache để so sánh diff, tránh render thừa
+    let previousRoomsData = [];
+
     async function initData() {
-      console.log("Bắt đầu khởi tạo dữ liệu...");
-      await loadRooms(); // Mặc định displayLoading = true
+      console.log("🚀 Khởi tạo web thu ngân...");
+      await loadRooms(true);
       
-      // Realtime
+      // Realtime: Lắng nghe thay đổi từ nhân viên hoặc tab thu ngân khác
       supabaseClient
         .channel('thungan-realtime-cashier')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'thungan' }, async (payload) => {
+          console.log("🔄 Realtime nhận thay đổi:", payload.eventType, payload.new?.ten_phong);
+          
           const activeEl = document.activeElement;
           const isTyping = activeEl && activeEl.classList.contains('amount-input');
           const savedVal = isTyping ? activeEl.value : null;
           const savedId = isTyping ? activeEl.id : null;
 
-          await loadRooms(false); // displayLoading = false để không nhấp nháy
+          await loadRooms(false);
 
           if (isTyping && savedId) {
             const el = document.getElementById(savedId);
@@ -200,37 +210,46 @@
         .subscribe();
     }
 
-    // ĐÃ SỬA: Đổi tên tham số thành displayLoading để không trùng với tên hàm showLoading
+    // ⚡ TỐI ƯU: Chỉ load và render nếu dữ liệu thực sự thay đổi
     async function loadRooms(displayLoading = true) {
       if (displayLoading) showLoading(true);
       try {
-        console.log("Đang gọi API Supabase...");
         const { data, error } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
-        
-        if (error) {
-          console.error("Lỗi Supabase chi tiết:", error);
-          throw new Error(error.message);
-        }
-
-        console.log("Dữ liệu nhận được:", data);
+        if (error) throw new Error(error.message);
 
         if (!data || data.length === 0) {
-           document.getElementById("roomTable").innerHTML = `<tr><td colspan="5" style="padding:30px; text-align:center;">Chưa có dữ liệu phòng. Vui lòng kiểm tra lại Database.</td></tr>`;
+           document.getElementById("roomTable").innerHTML = `<tr><td colspan="5" style="padding:30px; text-align:center;">Chưa có dữ liệu phòng.</td></tr>`;
            return;
         }
 
         await checkAndResetDaily(data);
         await check30MinAfterPaid(data);
 
-        const { data: finalData } = await supabaseClient.from('thungan').select('*').order('ten_phong', { ascending: true });
-        renderTable(finalData);
+        // So sánh dữ liệu cũ và mới
+        if (hasDataChanged(previousRoomsData, data)) {
+          renderTable(data);
+          previousRoomsData = JSON.parse(JSON.stringify(data)); // Deep clone để so sánh lần sau
+        }
       } catch (err) {
         console.error("Lỗi tải dữ liệu:", err);
         showToast("Lỗi CSDL: " + err.message, "error");
-        document.getElementById("roomTable").innerHTML = `<tr><td colspan="5" style="padding:30px; text-align:center; color:red;">Kết nối thất bại. Kiểm tra Console (F12) để biết chi tiết.</td></tr>`;
       } finally {
         if (displayLoading) showLoading(false);
       }
+    }
+
+    // Hàm kiểm tra thay đổi nhanh
+    function hasDataChanged(oldData, newData) {
+      if (!oldData || oldData.length !== newData.length) return true;
+      for (let i = 0; i < newData.length; i++) {
+        if (oldData[i].so_tien !== newData[i].so_tien ||
+            oldData[i].trang_thai !== newData[i].trang_thai ||
+            oldData[i].thoi_gian !== newData[i].thoi_gian ||
+            oldData[i].thoi_gian_thanh_toan !== newData[i].thoi_gian_thanh_toan) {
+          return true;
+        }
+      }
+      return false;
     }
 
     async function checkAndResetDaily(currentData) {
@@ -272,36 +291,58 @@
 
     function renderTable(data) {
       const table = document.getElementById("roomTable");
-      let html = "";
-      data.forEach(room => {
+      // Render lại toàn bộ nếu số lượng phòng thay đổi (hiếm khi xảy ra)
+      if (table.children.length !== data.length) {
+        table.innerHTML = "";
+        data.forEach(room => {
+          const tr = document.createElement("tr");
+          tr.dataset.roomId = room.ten_phong;
+          tr.innerHTML = `
+            <td class="cell-name"></td>
+            <td class="cell-amount"><input type="text" class="amount-input" autocomplete="off" oninput="onAmountChange('${room.ten_phong}')" onkeypress="if(event.key==='Enter'){updateAmount('${room.ten_phong}')}"></td>
+            <td class="cell-actions"></td>
+            <td class="cell-status"></td>
+            <td class="cell-time"></td>
+          `;
+          table.appendChild(tr);
+        });
+      }
+      
+      // Cập nhật nội dung từng hàng (Tối ưu tốc độ DOM)
+      const rows = table.children;
+      data.forEach((room, index) => {
+        const tr = rows[index];
+        if (!tr) return;
+        
         const displayName = getDisplayName(room.ten_phong);
-        const statusInfo = statusMap[room.trang_thai] || statusMap['chua mo'];
         const isDangMo = room.trang_thai === 'dang mo';
+        const isChuaMo = room.trang_thai === 'chua mo';
+        
         const displayAmount = (room.so_tien && room.so_tien > 0) ? formatNumber(room.so_tien) : "";
         const displayTime = (room.thoi_gian && room.thoi_gian !== '00:00') ? room.thoi_gian : "";
 
-        html += `
-          <tr>
-            <td><span class="room-name">${displayName}</span></td>
-            <td>
-              <input type="text" class="amount-input" id="amount-${room.ten_phong}" 
-                value="${displayAmount}" placeholder="0" autocomplete="off"
-                oninput="onAmountChange('${room.ten_phong}')"
-                onkeypress="if(event.key==='Enter'){updateAmount('${room.ten_phong}')}">
-            </td>
-            <td>
-              <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
-                <button class="btn btn-open" ${isDangMo ? 'disabled' : ''} onclick="openRoom('${room.ten_phong}')">🔓 Mở phòng</button>
-                <button class="btn btn-update" id="update-${room.ten_phong}" disabled onclick="updateAmount('${room.ten_phong}')">💾 Cập nhật</button>
-                <button class="btn btn-paid" ${!isDangMo ? 'disabled' : ''} onclick="markPaid('${room.ten_phong}')">✅ Thanh toán</button>
-              </div>
-            </td>
-            <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
-            <td style="color:var(--text-secondary); font-weight:600;">${displayTime || '—'}</td>
-          </tr>
+        // Áp dụng class màu đỏ nếu đang mở
+        tr.className = isDangMo ? 'bg-unpaid' : '';
+        
+        tr.querySelector('.cell-name').innerHTML = `<span class="${isDangMo ? 'room-name-unpaid' : 'room-name'}">${displayName}</span>`;
+        
+        const inputEl = tr.querySelector('.cell-amount input');
+        inputEl.id = `amount-${room.ten_phong}`;
+        if (document.activeElement !== inputEl) {
+          inputEl.value = displayAmount;
+        }
+
+        tr.querySelector('.cell-actions').innerHTML = `
+          <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+            <button class="btn btn-open" ${isDangMo ? 'disabled' : ''} onclick="openRoom('${room.ten_phong}')">🔓 Mở phòng</button>
+            <button class="btn btn-update" id="update-${room.ten_phong}" disabled onclick="updateAmount('${room.ten_phong}')">💾 Cập nhật</button>
+            <button class="btn btn-paid" ${!isDangMo ? 'disabled' : ''} onclick="markPaid('${room.ten_phong}')">✅ Thanh toán</button>
+          </div>
         `;
+        
+        tr.querySelector('.cell-status').innerHTML = `<span class="status-badge ${statusMap[room.trang_thai].class}">${statusMap[room.trang_thai].text}</span>`;
+        tr.querySelector('.cell-time').textContent = displayTime || '—';
       });
-      table.innerHTML = html;
     }
 
     async function openRoom(roomName) {
@@ -309,7 +350,7 @@
       const { error } = await supabaseClient.from('thungan').update({
         trang_thai: 'dang mo', so_tien: 0, thoi_gian: getCurrentTime(), thoi_gian_thanh_toan: ''
       }).eq('ten_phong', roomName);
-      if (!error) { showToast(`Đã mở ${getDisplayName(roomName)}`); await loadRooms(false); } 
+      if (!error) { showToast(`Đã mở ${getDisplayName(roomName)}`); } 
       else showToast("Lỗi: " + error.message, "error");
       showLoading(false);
     }
@@ -322,12 +363,27 @@
       if (btn) { btn.disabled = false; btn.classList.add('enabled'); }
     }
 
+    // ⚡ LOGIC MỚI: Nếu phòng chưa mở, nhấn cập nhật sẽ tự động mở phòng + lưu tiền
     async function updateAmount(roomName) {
       const amount = parseNumber(document.getElementById(`amount-${roomName}`).value);
       showLoading(true);
-      const { error } = await supabaseClient.from('thungan').update({ so_tien: amount }).eq('ten_phong', roomName);
-      if (!error) { showToast(`Đã cập nhật ${getDisplayName(roomName)}`); await loadRooms(false); } 
-      else showToast("Lỗi: " + error.message, "error");
+      
+      // Tìm trạng thái hiện tại của phòng
+      const currentRoom = previousRoomsData.find(r => r.ten_phong === roomName);
+      let updatePayload = { so_tien: amount };
+      
+      // Nếu đang "chưa mở", chuyển sang "đang mở" và ghi nhận giờ
+      if (currentRoom && currentRoom.trang_thai === 'chua mo') {
+        updatePayload.trang_thai = 'dang mo';
+        updatePayload.thoi_gian = getCurrentTime();
+      }
+
+      const { error } = await supabaseClient.from('thungan').update(updatePayload).eq('ten_phong', roomName);
+      if (!error) { 
+        showToast(`Đã cập nhật ${getDisplayName(roomName)}`); 
+      } else { 
+        showToast("Lỗi: " + error.message, "error"); 
+      }
       showLoading(false);
     }
 
@@ -336,7 +392,7 @@
       const { error } = await supabaseClient.from('thungan').update({
         trang_thai: 'da thanh toan', thoi_gian_thanh_toan: getCurrentTime()
       }).eq('ten_phong', roomName);
-      if (!error) { showToast(`Đã thanh toán ${getDisplayName(roomName)}`); await loadRooms(false); } 
+      if (!error) { showToast(`Đã thanh toán ${getDisplayName(roomName)}`); } 
       else showToast("Lỗi: " + error.message, "error");
       showLoading(false);
     }
@@ -350,9 +406,10 @@
 
     // Khởi chạy
     initData();
-    setInterval(() => loadRooms(false), 30000);
+    // Fallback đồng bộ mỗi 10 giây để đảm bảo không bao giờ bị sót dữ liệu
+    setInterval(() => loadRooms(false), 10000);
 
-    // Speed Test
+    // ================= NETWORK SPEED MONITOR =================
     const swDot = document.getElementById('swDot'), swDl = document.getElementById('swDl');
     const swUl = document.getElementById('swUl'), swPg = document.getElementById('swPg');
     const swStatus = document.getElementById('swStatus'), speedWidget = document.getElementById('speedWidget');
