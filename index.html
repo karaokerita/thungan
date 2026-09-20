@@ -12,7 +12,8 @@
     :root {
       --primary: #007bff; --primary-dark: #0056b3;
       --success: #28a745; --success-dark: #1e7e34;
-      --danger: #dc3545; --warning: #ff6600;
+      --danger: #dc3545; --danger-dark: #a71d2a;
+      --warning: #ff6600;
       --bg-overlay: rgba(255, 255, 255, 0.95);
       --radius: 12px;
     }
@@ -23,6 +24,44 @@
       min-height: 100vh; padding: 15px; color: #333;
     }
     
+    /* Connection Status Indicator */
+    #connectionStatus {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      z-index: 9998;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+    }
+    #connectionStatus .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+    }
+    #connectionStatus .dot.syncing {
+      background: #fbbf24;
+      animation: pulse 1s infinite;
+    }
+    #connectionStatus .dot.error {
+      background: #dc3545;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    #connectionStatus.live { background: #10b981; }
+    #connectionStatus.syncing { background: #f59e0b; }
+    #connectionStatus.error { background: #dc3545; }
+
     /* Login Screen */
     #loginScreen {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -89,10 +128,47 @@
     table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     th, td { border-bottom: 1px solid #f1f5f9; padding: 10px 6px; text-align: center; font-size: 13px; }
     th { background: #f8fafc; color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-    tr.bg-active { background: #eff6ff; }
-    .status-dang-mo { color: var(--primary); font-weight: 700; }
-    .status-da-thanh-toan { color: var(--success); font-weight: 700; }
-    .status-chua-mo { color: #94a3b8; }
+    
+    /* Hàng phòng đang mở - viền đỏ nhẹ */
+    tr.bg-active { 
+      background: #fef2f2; 
+      border-left: 3px solid var(--danger);
+    }
+    
+    /* Tên phòng đang mở - MÀU ĐỎ NỔI BẬT */
+    .room-name-active {
+      color: var(--danger) !important;
+      font-weight: 800 !important;
+      font-size: 14px !important;
+      text-shadow: 0 0 2px rgba(220, 53, 69, 0.2);
+    }
+    
+    /* Badge trạng thái */
+    .status-dang-mo { 
+      background: var(--danger); 
+      color: white; 
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      display: inline-block;
+      animation: blink-red 2s ease-in-out infinite;
+    }
+    @keyframes blink-red {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+    .status-da-thanh-toan { 
+      background: #d1fae5; 
+      color: var(--success-dark); 
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+    .status-chua-mo { 
+      color: #94a3b8; 
+      font-weight: 600;
+    }
     
     .btn-action { padding: 6px 10px; border: none; border-radius: 6px; cursor: pointer; margin: 2px; font-size: 12px; font-weight: 600; color: white; }
     .btn-pay { background: var(--success); }
@@ -129,10 +205,16 @@
 </head>
 <body>
 
+  <!-- Connection Status -->
+  <div id="connectionStatus" class="live">
+    <span class="dot"></span>
+    <span id="connectionText">Đang kết nối...</span>
+  </div>
+
   <!-- Login Screen -->
   <div id="loginScreen">
     <div class="login-container">
-      <h2>🔐 Đăng nhập Nhân viên</h2>
+      <h2> Đăng nhập Nhân viên</h2>
       <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" autocomplete="off" />
       <div class="remember-row">
         <input type="checkbox" id="rememberMe" />
@@ -175,7 +257,7 @@
       </table>
 
       <a href="https://karaokerita.github.io/qr/kho.html" class="btn-link btn-kho" target="_blank">📦 KIỂM KHO</a>
-      <a href="https://karaokerita.github.io/qr/checkout.html" class="btn-link btn-worktime" target="_blank">🕒 TÍNH GIỜ ĐI LÀM</a>
+      <a href="https://karaokerita.github.io/qr/checkout.html" class="btn-link btn-worktime" target="_blank"> TÍNH GIỜ ĐI LÀM</a>
     </div>
 
     <!-- Tab 2: Tạm ứng -->
@@ -228,6 +310,10 @@ let bankAccounts = {
     thanh_toan: { ten_ngan_hang: 'VCB', so_tai_khoan: '9917523946', chu_tai_khoan: 'HUYNH PHUONG TRANG' },
     tam_ung: { ten_ngan_hang: 'VCB', so_tai_khoan: '9917523946', chu_tai_khoan: 'HUYNH PHUONG TRANG' }
 };
+
+// Biến lưu dữ liệu cũ để so sánh (diff check)
+let previousDataHash = '';
+let lastUpdateTime = 0;
 
 // ================= ĐĂNG NHẬP =================
 const loginScreen = document.getElementById("loginScreen");
@@ -303,43 +389,79 @@ function numberToWords(n) {
   return parts.join(", ").replace(/ ,/g, ",").replace(/\s+/g, " ").trim() + " đồng";
 }
 
+// Connection status UI
+function setConnectionStatus(status, text) {
+  const el = document.getElementById('connectionStatus');
+  const dot = el.querySelector('.dot');
+  const textEl = document.getElementById('connectionText');
+  el.className = status;
+  dot.className = 'dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : '');
+  textEl.textContent = text;
+}
+
 // ================= LOGIC DỮ LIỆU & REALTIME =================
 async function initData() {
-    console.log("🚀 Khởi tạo ứng dụng nhân viên...");
+    console.log(" Khởi tạo ứng dụng nhân viên...");
+    setConnectionStatus('syncing', 'Đang tải...');
+    
     await loadBankAccounts();
-    await loadRooms(true); // Load lần đầu có loading
+    await loadRooms(true);
+    
+    setConnectionStatus('live', 'Đã đồng bộ');
     
     // 1. LẮNG NGHE REALTIME TỪ SUPABASE
-    const channel = supabaseClient
-      .channel('thungan-realtime-staff')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'thungan' }, async (payload) => {
-        console.log("🔄 Nhận thay đổi Realtime từ thu ngân:", payload);
-        
-        // Bảo vệ: Nếu đang gõ ở ô số tiền (thanh toán hoặc tạm ứng), giữ lại giá trị
-        const activeEl = document.activeElement;
-        const isTyping = activeEl && (activeEl.id === 'manualAmount' || activeEl.id === 'advanceAmount');
-        const savedVal = isTyping ? activeEl.value : null;
-        const savedId = isTyping ? activeEl.id : null;
+    setupRealtime();
 
-        await loadRooms(false); // Load lại không hiện loading
-
-        if (isTyping && savedId) {
-          const el = document.getElementById(savedId);
-          if (el) {
-            el.value = savedVal;
-            el.dispatchEvent(new Event('input')); // Kích hoạt lại cập nhật QR
-          }
-        }
-      })
-      .subscribe((status) => {
-        console.log("📡 Trạng thái kết nối Realtime:", status);
-      });
-
-    // 2. CƠ CHẾ DỰ PHÒNG (FALLBACK): Tự động load mỗi 15 giây nếu Realtime bị rớt
+    // 2. CƠ CHẾ DỰ PHÒNG: Tự động load mỗi 5 giây (tối ưu tốc độ)
     setInterval(() => {
-      console.log("⏱️ Fallback: Tự động đồng bộ dữ liệu...");
       loadRooms(false);
-    }, 15000);
+    }, 5000);
+}
+
+function setupRealtime() {
+  const channel = supabaseClient
+    .channel('thungan-realtime-staff-v2')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'thungan' }, async (payload) => {
+      console.log("🔄 Realtime change:", payload);
+      setConnectionStatus('syncing', 'Đang cập nhật...');
+      
+      const activeEl = document.activeElement;
+      const isTyping = activeEl && (activeEl.id === 'manualAmount' || activeEl.id === 'advanceAmount');
+      const savedVal = isTyping ? activeEl.value : null;
+      const savedId = isTyping ? activeEl.id : null;
+
+      await loadRooms(false);
+
+      if (isTyping && savedId) {
+        const el = document.getElementById(savedId);
+        if (el) {
+          el.value = savedVal;
+          el.dispatchEvent(new Event('input'));
+        }
+      }
+      
+      setTimeout(() => setConnectionStatus('live', 'Đã đồng bộ'), 1000);
+    })
+    .on('system', { event: '*' }, (payload) => {
+      console.log("📡 System event:", payload);
+      if (payload.status === 'CLOSED' || payload.status === 'CHANNEL_ERROR') {
+        setConnectionStatus('error', 'Mất kết nối');
+        // Tự động reconnect sau 3 giây
+        setTimeout(() => {
+          console.log("🔄 Đang reconnect...");
+          channel.unsubscribe();
+          setupRealtime();
+        }, 3000);
+      }
+    })
+    .subscribe((status) => {
+      console.log("📡 Realtime status:", status);
+      if (status === 'SUBSCRIBED') {
+        setConnectionStatus('live', 'Realtime ON');
+      } else if (status === 'CHANNEL_ERROR') {
+        setConnectionStatus('error', 'Lỗi kênh');
+      }
+    });
 }
 
 async function loadBankAccounts() {
@@ -354,9 +476,13 @@ async function loadBankAccounts() {
     } catch (e) { console.error("Lỗi tải tài khoản bank:", e); }
 }
 
+// Tạo hash đơn giản để so sánh dữ liệu cũ/mới
+function createDataHash(data) {
+  return data.map(r => `${r.ten_phong}:${r.trang_thai}:${r.so_tien}:${r.thoi_gian}`).join('|');
+}
+
 async function loadRooms(showLoading = true) {
   if (showLoading) {
-    // Tạo loading đơn giản nếu chưa có element
     let loader = document.getElementById("loadingOverlay");
     if(!loader) {
         loader = document.createElement("div");
@@ -379,10 +505,21 @@ async function loadRooms(showLoading = true) {
         return a.ten_phong.localeCompare(b.ten_phong);
     });
 
-    renderTable(data);
-    populateAdvanceRoomSelect(data);
+    // DIFF CHECK: Chỉ render khi dữ liệu thay đổi
+    const newHash = createDataHash(data);
+    if (newHash !== previousDataHash) {
+      console.log("📊 Dữ liệu thay đổi, đang render...");
+      previousDataHash = newHash;
+      renderTable(data);
+      populateAdvanceRoomSelect(data);
+      lastUpdateTime = Date.now();
+    } else {
+      // Dữ liệu không đổi, chỉ cập nhật dropdown tạm ứng (vì có thể phòng mới mở)
+      populateAdvanceRoomSelect(data);
+    }
   } catch (e) {
     console.error("❌ Lỗi tải phòng:", e);
+    setConnectionStatus('error', 'Lỗi kết nối');
   } finally {
     if (showLoading) {
       const loader = document.getElementById("loadingOverlay");
@@ -398,10 +535,22 @@ function renderTable(data) {
   data.forEach(room => {
     const displayName = getDisplayName(room.ten_phong);
     const isActive = room.trang_thai === 'dang mo';
-    const statusClass = room.trang_thai === 'dang mo' ? 'status-dang-mo' : 
-                        room.trang_thai === 'da thanh toan' ? 'status-da-thanh-toan' : 'status-chua-mo';
-    const statusText = room.trang_thai === 'dang mo' ? 'Chưa thanh toán' : 
-                       room.trang_thai === 'da thanh toan' ? 'Đã thanh toán' : 'Chưa mở';
+    
+    // MÀU ĐỎ NỔI BẬT cho trạng thái "Chưa thanh toán" (đang mở)
+    let roomNameHtml, statusHtml;
+    
+    if (isActive) {
+      // Tên phòng màu đỏ + in đậm
+      roomNameHtml = `<span class="room-name-active">${displayName}</span>`;
+      // Badge trạng thái màu đỏ
+      statusHtml = `<span class="status-dang-mo">Chưa thanh toán</span>`;
+    } else if (room.trang_thai === 'da thanh toan') {
+      roomNameHtml = `<span style="font-weight:700; color:#64748b;">${displayName}</span>`;
+      statusHtml = `<span class="status-da-thanh-toan">Đã thanh toán</span>`;
+    } else {
+      roomNameHtml = `<span style="font-weight:700; color:#94a3b8;">${displayName}</span>`;
+      statusHtml = `<span class="status-chua-mo">Chưa mở</span>`;
+    }
     
     const displayTime = (room.thoi_gian && room.thoi_gian !== '00:00') ? room.thoi_gian : '—';
     const displayAmount = (room.so_tien && room.so_tien > 0) ? formatNumber(room.so_tien) : '0';
@@ -410,9 +559,9 @@ function renderTable(data) {
     if (isActive) tr.classList.add("bg-active");
     
     tr.innerHTML = `
-      <td style="font-weight:700;">${displayName}</td>
-      <td style="font-weight:600;">${displayAmount}</td>
-      <td class="${statusClass}">${statusText}</td>
+      <td>${roomNameHtml}</td>
+      <td style="font-weight:600; ${isActive ? 'color:var(--danger);' : ''}">${displayAmount}</td>
+      <td>${statusHtml}</td>
       <td>${displayTime}</td>
       <td>
         <button class="btn-action btn-qr" onclick="fillQR('${room.so_tien || 0}', '${room.ten_phong}')">Lấy QR</button>
